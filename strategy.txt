@@ -1,0 +1,64 @@
+# =============================================================
+# STRATEGIE DE RECHERCHE — YouTube Scout v2
+# =============================================================
+# Variables: {city}, {state}, {category}, {cat_label}, {sub_min}, {sub_max}
+# Modifiez ce fichier ou editez dans l'interface web.
+# Relu automatiquement a chaque nouvelle ville.
+# =============================================================
+
+[OBJECTIF]
+Trouver des chaines YouTube actives (upload < 30 jours) de createurs 
+bases a {city}, {state} dans la categorie {cat_label}, 
+avec {sub_min} a {sub_max} abonnes.
+
+[ETAPE 1 — Recherche directe]
+# Chercher directement des listes de YouTubeurs locaux
+Requetes a formuler:
+- youtubers from {city} {cat_label}
+- {city} {state} youtube creator {cat_label}
+- best {cat_label} youtubers {city} OR {state}
+- site:reddit.com {city} youtuber {cat_label} recommendation
+
+[ETAPE 2 — Approche universitaire et institutionnelle]
+# Identifier les programmes d'etude et diplomes pertinents
+Requetes a formuler:
+- {city} university {category} program graduates alumni youtube
+- {state} film school OR cinema school students youtube channel
+- {city} {cat_label} workshop instructor youtube
+
+[ETAPE 3 — Communaute locale et evenements]
+# Explorer les communautes locales et evenements
+Requetes a formuler:
+- {city} {cat_label} meetup convention festival creators
+- {city} {cat_label} community youtube group
+- {city} content creator collective network {category}
+
+[ETAPE 4 — Presse locale et interviews]
+# Chercher dans la presse locale des profils de createurs
+Requetes a formuler:
+- {city} local youtuber interview profile {cat_label}
+- {city} rising creator local creator {cat_label}
+- {city} newspaper magazine {cat_label} youtube creator
+
+[ETAPE 5 — Reseaux sociaux croises]
+# Trouver via Twitter/Instagram/TikTok vers YouTube
+Requetes a formuler:
+- site:twitter.com {city} youtube {cat_label} creator
+- {city} {cat_label} tiktoker also on youtube
+- {city} {cat_label} influencer subscribe new video
+
+[ETAPE 6 — Recherche YouTube directe]
+# Chercher directement des chaines YouTube via Google
+Requetes a formuler:
+- site:youtube.com {city} {cat_label}
+- site:youtube.com {city} {state} {cat_label} subscribers
+- inurl:youtube.com {city} {category} channel
+
+[NOTES]
+# Pour chaque etape, le programme:
+# 1. Formule les requetes adaptees a la ville/categorie
+# 2. Alterne entre Google et Brave Search
+# 3. Navigue comme un humain (Firefox headless)
+# 4. Sauvegarde chaque page de resultats en HTML
+# 5. Parse les liens + descriptions
+# 6. Le LLM analyse pour extraire noms, URLs YouTube, evidence ville

@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Web Search Module — Flow</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Outfit:wght@300;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0b10;--bg2:#12131c;--bg3:#1a1c28;--bd:#2a2d3e;--t1:#e8eaf0;--t2:#8b90a8;--t3:#4e526a;--green:#10b981;--blue:#3b82f6;--yel:#f59e0b;--cyan:#06b6d4;--red:#ff3b5c;--pur:#8b5cf6;--orange:#f97316}
+*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--t1);padding:40px 60px}
+h1{font-size:36px;font-weight:900;color:var(--cyan);margin-bottom:6px}.sub{font-size:13px;color:var(--t2);margin-bottom:20px}
+nav{display:flex;gap:8px;margin-bottom:30px}nav a{padding:7px 18px;border-radius:20px;font-size:12px;font-weight:700;text-decoration:none;border:1px solid var(--bd);color:var(--t2);transition:.2s}nav a:hover{border-color:var(--cyan);color:var(--t1)}nav a.active{background:var(--cyan);color:#000;border-color:var(--cyan)}
+.card{background:var(--bg2);border:1px solid var(--bd);border-radius:16px;padding:24px;margin-bottom:16px}
+.card h2{font-size:16px;font-weight:700;color:var(--cyan);margin-bottom:10px}
+.card h2 .file{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--t3);font-weight:400;margin-left:8px}
+.fn{background:var(--bg3);border:1px solid var(--bd);border-radius:10px;padding:14px;margin-bottom:10px}
+.fn-name{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan);font-weight:700}
+.fn-sig{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--t2);margin:4px 0}
+.io{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}
+.in,.out{padding:10px;border-radius:8px;font-size:11px;line-height:1.6}
+.in{background:#3b82f610;border:1px solid #3b82f625}.out{background:#10b98110;border:1px solid #10b98125}
+.in b{color:var(--blue)}.out b{color:var(--green)}
+.in code,.out code{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--t2);display:block;margin-top:3px}
+.seq{counter-reset:step;margin-top:10px}
+.seq-step{counter-increment:step;padding-left:34px;position:relative;margin-bottom:8px;font-size:12px;color:var(--t2);line-height:1.6}
+.seq-step::before{content:counter(step);position:absolute;left:0;width:24px;height:24px;border-radius:50%;background:var(--cyan);color:#000;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.seq-step code{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--cyan);background:var(--bg3);padding:1px 5px;border-radius:3px}
+.ext{background:#ff3b5c10;border:1px solid #ff3b5c25;border-radius:10px;padding:12px;margin:10px 0;font-size:12px}
+.ext b{color:var(--red)}
+.note{background:var(--bg3);border-left:3px solid var(--yel);padding:10px 14px;border-radius:0 8px 8px 0;margin:10px 0;font-size:11px;color:var(--t2)}
+.note b{color:var(--yel)}
+.dep{font-size:11px;color:var(--t3);margin-top:8px;font-family:'JetBrains Mono',monospace}
+.dep span{color:var(--pur)}
+</style>
+</head>
+<body>
+<h1>🔍 Web Search Module</h1>
+<div class="sub">web_search/ — Brave Search, fetch pages, vérification YouTube</div>
+<nav>
+<a href="architecture_globale.html">🌐 Vue Globale</a>
+<a href="server_flow.html">🖥️ Server</a>
+<a href="pipeline_flow.html">⚙️ Pipeline</a>
+<a class="active" href="web_search_flow.html">🔍 Web Search</a>
+</nav>
+
+<div class="card">
+<h2>brave_search.py <span class="file">web_search/web_search_core/brave_search.py</span></h2>
+
+<div class="fn">
+<div class="fn-name">brave_search_paginated(query, session, max_pages=4, log_func=None)</div>
+<div class="fn-sig">async → List[Dict]</div>
+<div class="io">
+<div class="in"><b>INPUT:</b><code>query: "site:reddit.com \"Houston\" gaming"<br>session: aiohttp.ClientSession<br>max_pages: 4 (offset 0, 20, 40, 60)<br>log_func: callable pour logging</code></div>
+<div class="out"><b>OUTPUT:</b><code>[{"url": "https://reddit.com/r/houston/...",<br>  "title": "Gaming YouTubers in Houston?",<br>  "snippet": "Anyone know local...",<br>  "domain": "reddit.com",<br>  "page_num": 1, "query": "..."}]<br>~20-80 résultats dédupliqués</code></div>
+</div>
+</div>
+
+<div class="seq">
+<div class="seq-step"><code>rate_limiter.wait("search.brave.com")</code> — attend 2-5s</div>
+<div class="seq-step">GET <code>https://search.brave.com/search?q={query}&offset={0|20|40|60}</code></div>
+<div class="seq-step">Si HTTP 429 → attend 60s → retry une fois</div>
+<div class="seq-step"><code>_parse(html)</code> → extrait tous les liens externes + snippets</div>
+<div class="seq-step">Déduplication par URL, comptage nouveaux résultats</div>
+<div class="seq-step">Si < 3 nouveaux résultats → stop pagination</div>
+</div>
+
+<div class="fn">
+<div class="fn-name">_parse(html) — fonction interne</div>
+<div class="fn-sig">→ List[Dict]</div>
+<div class="io">
+<div class="in"><b>INPUT:</b><code>HTML brut de search.brave.com</code></div>
+<div class="out"><b>OUTPUT:</b><code>Liste de {url, title, snippet, domain}<br>Filtre: SKIP_DOMAINS (google, bing, brave...)<br>Filtre: liens < 5 chars, /search?, javascript:</code></div>
+</div>
+</div>
+
+<div class="ext"><b>APPEL EXTERNE:</b> search.brave.com — scraping HTML (pas d'API key requise)</div>
+<div class="dep">Dépendances: <span>utils.rate_limiter</span>, USER_AGENTS (5 agents rotatifs)</div>
+</div>
+
+<div class="card">
+<h2>page_fetcher.py <span class="file">web_search/web_search_core/page_fetcher.py</span></h2>
+
+<div class="fn">
+<div class="fn-name">fetch_page(url, session, max_chars=20000)</div>
+<div class="fn-sig">async → Dict</div>
+<div class="io">
+<div class="in"><b>INPUT:</b><code>url: "https://houstonpress.com/arts/local-youtubers"<br>session: aiohttp.ClientSession<br>max_chars: 20000 (truncation du texte)</code></div>
+<div class="out"><b>OUTPUT:</b><code>{"url": "...", "success": true,<br> "text": "Houston's local YouTube scene...",<br> "youtube_urls": [<br>   "https://youtube.com/@johnreviews",<br>   "https://youtube.com/@gamerhtown"<br> ],<br> "title": "Local YouTubers to Watch",<br> "error": null}</code></div>
+</div>
+</div>
+
+<div class="seq">
+<div class="seq-step"><code>rate_limiter.wait(domain)</code> — délai par domaine</div>
+<div class="seq-step">GET url avec User-Agent aléatoire, timeout 20s</div>
+<div class="seq-step">Vérification Content-Type = text/html</div>
+<div class="seq-step">Extraction &lt;title&gt;</div>
+<div class="seq-step">Regex: extrait TOUTES les URLs YouTube du HTML brut<br>
+  <code>youtube.com/@handle</code>, <code>youtube.com/channel/UC...</code>, <code>youtube.com/c/...</code>, <code>youtube.com/user/...</code></div>
+<div class="seq-step">Strip: script, style, nav, header, footer, aside, noscript, svg, iframe</div>
+<div class="seq-step">HTML → texte brut, tronqué à max_chars</div>
+</div>
+
+<div class="note"><b>Note:</b> Les URLs YouTube sont extraites AVANT le nettoyage HTML (elles seraient perdues sinon). Le texte est pour le LLM, les URLs sont pour la vérification directe.</div>
+<div class="dep">Dépendances: <span>utils.rate_limiter</span>, <span>brave_search.USER_AGENTS</span></div>
+</div>
+
+<div class="card">
+<h2>youtube_checker.py <span class="file">web_search/web_search_core/youtube_checker.py</span></h2>
+
+<div class="fn">
+<div class="fn-name">verify_youtube_channel(url, session)</div>
+<div class="fn-sig">async → Dict</div>
+<div class="io">
+<div class="in"><b>INPUT:</b><code>url: "https://youtube.com/@johnreviews"<br>session: aiohttp.ClientSession</code></div>
+<div class="out"><b>OUTPUT:</b><code>{"url": "...",<br> "exists": true,<br> "channel_name": "John's Movie Reviews",<br> "subscribers_text": "45.2K subscribers",<br> "subscribers_count": 45200,<br> "subscriber_in_range": true,  // 20k-150k<br> "last_upload_text": "3 days ago",<br> "last_upload_recent": true,   // < 30 jours<br> "description": "Movie reviews from...",<br> "error": null}</code></div>
+</div>
+</div>
+
+<div class="seq">
+<div class="seq-step"><code>rate_limiter.wait("www.youtube.com")</code></div>
+<div class="seq-step">GET page principale de la chaîne</div>
+<div class="seq-step">Détecte existence: <code>"channelMetadataRenderer"</code> ou <code>og:title</code> dans HTML</div>
+<div class="seq-step">Parse nom: <code>og:title</code> ou <code>"title"</code> dans JSON embarqué</div>
+<div class="seq-step">Parse abonnés: <code>"subscriberCountText"</code> → <code>_parse_subs("45.2K")</code> → 45200</div>
+<div class="seq-step">Vérifie range: <code>SUB_MIN (20k) ≤ 45200 ≤ SUB_MAX (150k)</code> → true</div>
+<div class="seq-step">Parse description: <code>og:description</code></div>
+<div class="seq-step"><code>rate_limiter.wait("www.youtube.com")</code> — 2ème requête</div>
+<div class="seq-step">GET <code>/videos</code> de la chaîne</div>
+<div class="seq-step">Parse <code>"publishedTimeText"</code> → <code>_is_recent("3 days ago")</code> → true</div>
+</div>
+
+<div class="fn">
+<div class="fn-name">_parse_subs(text) — helper</div>
+<div class="io">
+<div class="in"><b>INPUT:</b> <code>"45.2K subscribers"</code></div>
+<div class="out"><b>OUTPUT:</b> <code>45200</code> (int)</div>
+</div>
+</div>
+
+<div class="fn">
+<div class="fn-name">_is_recent(text) — helper</div>
+<div class="io">
+<div class="in"><b>INPUT:</b> <code>"3 days ago"</code> ou <code>"2 weeks ago"</code> ou <code>"3 months ago"</code></div>
+<div class="out"><b>OUTPUT:</b> <code>True</code> si ≤ 30 jours, <code>False</code> sinon<br>
+<code>hours/minutes/seconds → True</code><br>
+<code>N days, N≤30 → True</code><br>
+<code>N weeks, N≤4 → True</code><br>
+<code>N months, N≤1 → True</code><br>
+<code>else → False</code></div>
+</div>
+</div>
+
+<div class="ext"><b>APPEL EXTERNE:</b> youtube.com — 2 requêtes par chaîne (page principale + /videos)</div>
+<div class="dep">Dépendances: <span>utils.rate_limiter</span>, <span>brave_search.USER_AGENTS</span>, <span>config.settings.SUB_MIN/SUB_MAX</span></div>
+</div>
+
+<div class="card">
+<h2>web_search.py <span class="file">web_search/web_search.py</span></h2>
+<div class="note"><b>Interface publique:</b> Simple re-export des 3 fonctions. Permet aux autres modules d'importer depuis un seul endroit.<br>
+<code>from web_search.web_search import brave_search_paginated, fetch_page, verify_youtube_channel</code></div>
+</div>
+
+<div class="card">
+<h2>Flux de données résumé</h2>
+<div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--t2);line-height:2;padding:10px">
+<span style="color:var(--orange)">pipeline.py</span> appelle:<br>
+&nbsp;&nbsp;→ <span style="color:var(--cyan)">brave_search_paginated</span>(query, session) → <span style="color:var(--green)">List[{url,title,snippet}]</span><br>
+&nbsp;&nbsp;→ <span style="color:var(--cyan)">fetch_page</span>(url, session) → <span style="color:var(--green)">{text, youtube_urls}</span><br>
+&nbsp;&nbsp;→ <span style="color:var(--cyan)">verify_youtube_channel</span>(yt_url, session) → <span style="color:var(--green)">{exists, subs, recent}</span><br><br>
+Toutes les fonctions sont <span style="color:var(--yel)">async</span> et partagent la même <span style="color:var(--pur)">aiohttp.ClientSession</span><br>
+Toutes passent par <span style="color:var(--pur)">rate_limiter.wait(domain)</span> avant chaque requête HTTP
+</div>
+</div>
+
+</body>
+</html>

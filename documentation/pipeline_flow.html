@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pipeline Module — Flow</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Outfit:wght@300;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0b10;--bg2:#12131c;--bg3:#1a1c28;--bd:#2a2d3e;--t1:#e8eaf0;--t2:#8b90a8;--t3:#4e526a;--green:#10b981;--blue:#3b82f6;--yel:#f59e0b;--cyan:#06b6d4;--red:#ff3b5c;--pur:#8b5cf6;--orange:#f97316;--pink:#ec4899}
+*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--t1);padding:40px 60px}
+h1{font-size:36px;font-weight:900;color:var(--orange);margin-bottom:6px}.sub{font-size:13px;color:var(--t2);margin-bottom:20px}
+nav{display:flex;gap:8px;margin-bottom:30px}nav a{padding:7px 18px;border-radius:20px;font-size:12px;font-weight:700;text-decoration:none;border:1px solid var(--bd);color:var(--t2);transition:.2s}nav a:hover{border-color:var(--orange);color:var(--t1)}nav a.active{background:var(--orange);color:#fff;border-color:var(--orange)}
+.phase{background:var(--bg2);border:1px solid var(--bd);border-radius:16px;padding:24px;margin-bottom:12px;position:relative;overflow:hidden}
+.phase::before{content:attr(data-phase);position:absolute;right:20px;top:12px;font-size:48px;font-weight:900;color:var(--bd);font-family:'Outfit'}
+.phase h2{font-size:16px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:10px}
+.phase h2 .tag{padding:3px 10px;border-radius:12px;font-size:10px;font-weight:700;text-transform:uppercase}
+.phase h2 .tag.llm{background:#f59e0b20;color:var(--yel);border:1px solid #f59e0b40}
+.phase h2 .tag.web{background:#06b6d420;color:var(--cyan);border:1px solid #06b6d440}
+.phase h2 .tag.yt{background:#ff3b5c20;color:var(--red);border:1px solid #ff3b5c40}
+.fn{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--cyan);margin:4px 0}
+.io{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}
+.in,.out{padding:10px;border-radius:8px;font-size:11px;line-height:1.6}
+.in{background:#3b82f610;border:1px solid #3b82f625}.out{background:#10b98110;border:1px solid #10b98125}
+.in b{color:var(--blue)}.out b{color:var(--green)}
+.in code,.out code{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--t2);display:block;margin-top:3px}
+.calls{font-size:12px;color:var(--t2);margin-top:8px;padding:8px 12px;background:var(--bg3);border-radius:8px;border-left:3px solid var(--orange)}
+.calls code{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--cyan)}
+.connector{text-align:center;padding:6px 0;font-size:20px;color:var(--orange);font-weight:700}
+.loop-box{border:2px solid var(--yel);border-radius:12px;padding:16px;margin:16px 0;background:#f59e0b06}
+.loop-box .lh{font-size:13px;font-weight:700;color:var(--yel);margin-bottom:8px}
+.decision{background:#ff3b5c10;border:1px solid #ff3b5c30;border-radius:10px;padding:10px 14px;margin:8px 0;font-size:12px}
+.decision b{color:var(--red)}
+</style>
+</head>
+<body>
+<h1>⚙️ Pipeline Module</h1>
+<div class="sub">pipeline/ — Orchestration des 7 phases de recherche avec résolution exhaustive</div>
+<nav>
+<a href="architecture_globale.html">🌐 Vue Globale</a>
+<a href="server_flow.html">🖥️ Server</a>
+<a class="active" href="pipeline_flow.html">⚙️ Pipeline</a>
+<a href="web_search_flow.html">🔍 Web Search</a>
+</nav>
+
+<div class="phase" data-phase="⟳">
+<h2>run_full_scan() <span class="fn">pipeline/pipeline.py</span></h2>
+<div class="io">
+<div class="in"><b>DÉCLENCHÉ PAR:</b><code>routes.h_start_scan → asyncio.create_task()</code></div>
+<div class="out"><b>ÉCRIT DANS:</b><code>app_state.results, .resolution_status,<br>.progress.completed_states/resolved_tasks</code></div>
+</div>
+<div class="loop-box">
+<div class="lh">🔄 BOUCLE: pour chaque état (50 itérations)</div>
+<div class="calls">Appelle <code>pipe.process_state(state_name, cities)</code> → bloquant jusqu'à résolution<br>
+Puis <code>app_state.results.update(pipe.get_results())</code><br>
+Auto-save <code>_save()</code> tous les 5 états → <code>results.json</code></div>
+</div>
+</div>
+
+<div class="connector">▼</div>
+
+<div class="phase" data-phase="⟳">
+<h2>process_state(state_name, cities) <span class="fn">→ StateResolution</span></h2>
+<div class="loop-box">
+<div class="lh">🔄 BOUCLE: pour chaque ville (3 itérations, SÉQUENTIEL)</div>
+<div class="calls">Appelle <code>_process_city(city_res, state_name)</code> — NE PASSE PAS à la suivante tant que pas fini</div>
+</div>
+</div>
+
+<div class="connector">▼</div>
+
+<div class="phase" data-phase="⟳">
+<h2>_process_city(city_res, state_name)</h2>
+<div class="loop-box">
+<div class="lh">🔄 BOUCLE: 1 à MAX_WAVES (3) vagues</div>
+<div class="calls">Pour chaque catégorie non résolue: appelle <code>_process_category_wave()</code><br>
+Si toutes les catégories résolues → stop les vagues<br>
+Si vague échoue → prochaine vague avec stratégie différente</div>
+</div>
+<div class="decision"><b>SORTIE:</b> Catégories restantes en PENDING → marquées FAILED avec reason</div>
+</div>
+
+<div class="connector">▼ (une vague pour une catégorie)</div>
+
+<div class="phase" data-phase="1">
+<h2>Phase 1: Génération de requêtes <span class="tag llm">LLM</span></h2>
+<div class="fn">pipeline_core/query_generator.py → generate_queries()</div>
+<div class="io">
+<div class="in"><b>INPUT:</b><code>city, state, cat_key, cat_label,<br>wave (1-3), prev_queries (vagues précéd.),<br>llm_func (= query_llm), log</code></div>
+<div class="out"><b>OUTPUT:</b><code>[{"angle":"reddit",<br> "query":"site:reddit.com \"Houston\" gaming youtuber",<br> "expected_yield":"recommendations"}]<br>6-8 requêtes multi-angles</code></div>
+</div>
+<div class="calls">Envoie <code>TEMPLATE.format(**kwargs)</code> au LLM via <code>llm_func(prompt)</code><br>
+Si LLM échoue → <code>fallback_queries()</code> (requêtes codées en dur)</div>
+</div>
+
+<div class="connector">▼ queries (List[Dict])</div>
+
+<div class="phase" data-phase="2">
+<h2>Phase 2: Recherche Brave avec agrégation <span class="tag web">WEB</span></h2>
+<div class="fn">web_search/brave_search.py → brave_search_paginated()</div>
+<div class="io">
+<div class="in"><b>INPUT (par requête):</b><code>query: str, session: aiohttp,<br>max_pages: 4 (= 80 résultats max)</code></div>
+<div class="out"><b>OUTPUT (agrégé):</b><code>unique_results: List[Dict]<br>~200-400 résultats uniques<br>{"url","title","snippet","domain"}</code></div>
+</div>
+<div class="calls">Pour chaque des 6-8 requêtes → <code>brave_search_paginated(q, session, pages=4)</code><br>
+Déduplication par URL → <code>unique_results</code></div>
+</div>
+
+<div class="connector">▼ unique_results (200-400)</div>
+
+<div class="phase" data-phase="3">
+<h2>Phase 3: Triage et scoring <span class="tag llm">LLM</span></h2>
+<div class="fn">pipeline_core/result_triage.py → triage_results()</div>
+<div class="io">
+<div class="in"><b>INPUT:</b><code>results (200-400), city, state,<br>cat_label, min_score=4, llm_func</code></div>
+<div class="out"><b>OUTPUT:</b><code>to_fetch: List[Dict] (max 25)<br>triés par score décroissant<br>chaque résultat a {"score":8,"reason":"..."}</code></div>
+</div>
+<div class="calls">Traitement par batch de 30 résultats → LLM score chaque 0-10<br>
+Filtre <code>score ≥ 4</code> → garde les 25 meilleurs</div>
+</div>
+
+<div class="connector">▼ to_fetch (25 URLs)</div>
+
+<div class="phase" data-phase="4">
+<h2>Phase 4: Fetch + extraction de fragments <span class="tag web">WEB</span> <span class="tag llm">LLM</span></h2>
+<div class="fn">web_search/page_fetcher.py → fetch_page() | pipeline_core/page_extractor.py → extract_fragments()</div>
+<div class="io">
+<div class="in"><b>INPUT (par page):</b><code>url → fetch_page(url, session) → texte<br>texte + page_info → extract_fragments(<br>  page_data, page_info, city, state,<br>  cat_label, wave, llm_func)</code></div>
+<div class="out"><b>OUTPUT:</b><code>all_frags: List[Fragment]<br>Chaque Fragment contient:<br>  value=JSON{name,yt_url,city_quote,...}<br>  source_url, source_type, context<br>cross_city_refs: List[Dict]</code></div>
+</div>
+<div class="calls">Pour chaque des 25 pages:<br>
+1. <code>fetch_page(url, session)</code> → {text, youtube_urls}<br>
+2. <code>extract_fragments(page_data, ...)</code> → LLM extrait créateurs mentionnés</div>
+</div>
+
+<div class="connector">▼ all_frags (List[Fragment])</div>
+
+<div class="phase" data-phase="5">
+<h2>Phase 5: Assemblage des candidats <span class="tag llm">LLM</span></h2>
+<div class="fn">pipeline_core/candidate_assembler.py → assemble_candidates()</div>
+<div class="io">
+<div class="in"><b>INPUT:</b><code>fragments (all_frags), city, state,<br>cat_label, llm_func</code></div>
+<div class="out"><b>OUTPUT:</b><code>candidates: List[Dict]<br>{"channel_name","channel_url",<br>"city_evidence_strength","city_evidence_quotes",<br>"city_evidence_sources","missing_info"}</code></div>
+</div>
+<div class="calls">LLM regroupe fragments par personne (même nom/URL/handle)<br>
+Évalue force des preuves ville + catégorie<br>
+Liste les infos manquantes</div>
+</div>
+
+<div class="connector">▼ candidates (incomplets possible)</div>
+
+<div class="phase" data-phase="5b">
+<h2>Phase 5b: Recherches complémentaires <span class="tag web">WEB</span> <span class="tag llm">LLM</span></h2>
+<div class="fn">pipeline_core/followup_search.py → run_followups()</div>
+<div class="io">
+<div class="in"><b>INPUT:</b><code>incomplete (sans URL ou evidence faible),<br>all_candidates, session, llm_func</code></div>
+<div class="out"><b>OUTPUT:</b><code>Mutation in-place de candidates[]<br>Ajoute channel_url trouvées</code></div>
+</div>
+<div class="calls">Seulement si wave < MAX_WAVES et candidats incomplets<br>
+LLM génère requêtes ciblées → <code>brave_search_paginated()</code> → cherche URLs YouTube</div>
+</div>
+
+<div class="connector">▼ candidates (enrichis)</div>
+
+<div class="phase" data-phase="6">
+<h2>Phase 6+7: Vérification YouTube + Adversariale <span class="tag yt">YOUTUBE</span> <span class="tag llm">LLM</span></h2>
+<div class="fn">web_search/youtube_checker.py + pipeline_core/verification.py</div>
+<div class="io">
+<div class="in"><b>INPUT (par candidat):</b><code>channel_url → verify_youtube_channel(url, session)<br>→ yt_data: {exists, subs, recent}<br>cand + yt_data → verify_city(cand, yt, city, state, llm)<br>cand + yt_data → verify_category(cand, yt, cat, llm)</code></div>
+<div class="out"><b>OUTPUT:</b><code>ChannelCandidate avec:<br>  yt_subscriber_match: bool (20k-150k)<br>  city_score: 0.0-1.0 (adversarial)<br>  category_score: 0.0-1.0<br>  total_score: pondéré<br>  verified: bool (score ≥ 0.5 + subs OK)</code></div>
+</div>
+<div class="decision">
+<b>FILTRES SÉQUENTIELS:</b><br>
+❌ Channel n'existe pas → REJECT<br>
+❌ Subs hors 20k-150k → REJECT<br>
+❌ city_score < 0.4 → REJECT<br>
+❌ category mismatch + score < 0.3 → REJECT<br>
+✅ total_score ≥ 0.5 + subs OK → VERIFIED
+</div>
+<div class="calls">Si verified.length > 0: <code>best = max(verified, key=total_score)</code><br>
+→ <code>cat_res.status = RESOLVED</code>, <code>cat_res.best_candidate = best.to_dict()</code><br>
+→ <code>progress_callback({"type":"category_resolved", "channel":best})</code></div>
+</div>
+
+<div class="connector">▼ si échec</div>
+
+<div class="phase" data-phase="E">
+<h2>Escalation <span class="tag llm">LLM</span></h2>
+<div class="fn">pipeline_core/escalation.py → analyze_failure()</div>
+<div class="io">
+<div class="in"><b>INPUT:</b><code>city, state, cat_label, wave,<br>queries, total_results, pages_fetched,<br>fragments, verified_count, llm_func, log</code></div>
+<div class="out"><b>OUTPUT:</b><code>{"failure_analysis": "queries too narrow",<br>"city_viability": "medium",<br>"recommended_strategy": "widen to metro"}</code></div>
+</div>
+<div class="decision"><b>Si wave ≥ MAX_WAVES:</b> <code>cat_res.status = FAILED</code><br>
+<b>Sinon:</b> retour à Phase 1 avec wave+1, previous_wave_context enrichi</div>
+</div>
+
+</body>
+</html>

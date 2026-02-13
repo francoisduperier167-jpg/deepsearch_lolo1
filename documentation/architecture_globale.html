@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YouTube Scout v2 — Architecture Globale</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Outfit:wght@300;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0b10;--bg2:#12131c;--bg3:#1a1c28;--bd:#2a2d3e;--t1:#e8eaf0;--t2:#8b90a8;--t3:#4e526a;
+--red:#ff3b5c;--blue:#3b82f6;--green:#10b981;--yel:#f59e0b;--pur:#8b5cf6;--cyan:#06b6d4;--pink:#ec4899;--orange:#f97316}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--t1);overflow-x:hidden}
+.grain{position:fixed;inset:0;pointer-events:none;opacity:.03;background:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+header{padding:40px 60px 30px;border-bottom:1px solid var(--bd)}
+h1{font-size:42px;font-weight:900;letter-spacing:-1.5px;background:linear-gradient(135deg,var(--cyan),var(--blue),var(--pur));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sub{font-size:13px;color:var(--t2);margin-top:6px;font-weight:300}
+nav{display:flex;gap:8px;margin-top:18px}
+nav a{padding:7px 18px;border-radius:20px;font-size:12px;font-weight:700;text-decoration:none;border:1px solid var(--bd);color:var(--t2);transition:.2s}
+nav a:hover{border-color:var(--blue);color:var(--t1)}
+nav a.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+.legend{display:flex;gap:16px;margin-top:14px;flex-wrap:wrap}
+.leg{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--t2)}
+.leg-dot{width:10px;height:10px;border-radius:3px}
+.canvas-wrap{position:relative;width:100%;min-height:calc(100vh - 200px);overflow:auto;padding:40px}
+svg.flow{width:100%;height:100%;min-height:800px}
+/* Nodes */
+.node{cursor:pointer;transition:filter .2s}
+.node:hover{filter:brightness(1.2) drop-shadow(0 0 12px rgba(59,130,246,.4))}
+.node rect,.node circle{transition:stroke .2s}
+.node:hover rect{stroke-width:2.5}
+.node-label{font-family:'Outfit',sans-serif;font-weight:700;font-size:13px;fill:var(--t1)}
+.node-sub{font-family:'JetBrains Mono',monospace;font-size:9.5px;fill:var(--t2)}
+.node-file{font-family:'JetBrains Mono',monospace;font-size:10px;fill:var(--t3)}
+/* Arrows */
+.arrow{stroke-width:2;fill:none;marker-end:url(#arrowhead)}
+.arrow-label{font-family:'JetBrains Mono',monospace;font-size:9px;fill:var(--yel)}
+.arrow-var{font-family:'JetBrains Mono',monospace;font-size:8.5px;fill:var(--cyan)}
+/* Groups */
+.group-bg{rx:16;ry:16;stroke-dasharray:6 3}
+/* Tooltip */
+.tooltip{position:fixed;background:var(--bg2);border:1px solid var(--bd);border-radius:10px;padding:14px 18px;max-width:380px;font-size:12px;line-height:1.6;color:var(--t2);pointer-events:none;opacity:0;transition:opacity .15s;z-index:1000;box-shadow:0 8px 32px rgba(0,0,0,.5)}
+.tooltip.show{opacity:1}
+.tooltip h3{color:var(--t1);font-size:14px;margin-bottom:6px;font-weight:700}
+.tooltip code{background:var(--bg3);padding:1px 6px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--cyan)}
+.tooltip .sig{color:var(--green);font-family:'JetBrains Mono',monospace;font-size:10px;margin:4px 0}
+.tooltip .ret{color:var(--orange)}
+</style>
+</head>
+<body>
+<div class="grain"></div>
+<header>
+<h1>Architecture Globale</h1>
+<div class="sub">YouTube Scout v2 — Flux des variables entre tous les modules</div>
+<nav>
+<a class="active" href="architecture_globale.html">🌐 Vue Globale</a>
+<a href="server_flow.html">🖥️ Server</a>
+<a href="pipeline_flow.html">⚙️ Pipeline</a>
+<a href="web_search_flow.html">🔍 Web Search</a>
+</nav>
+<div class="legend">
+<div class="leg"><div class="leg-dot" style="background:var(--blue)"></div>Entry Point</div>
+<div class="leg"><div class="leg-dot" style="background:var(--green)"></div>Server Module</div>
+<div class="leg"><div class="leg-dot" style="background:var(--orange)"></div>Pipeline Module</div>
+<div class="leg"><div class="leg-dot" style="background:var(--cyan)"></div>Web Search Module</div>
+<div class="leg"><div class="leg-dot" style="background:var(--pur)"></div>Config / Utils</div>
+<div class="leg"><div class="leg-dot" style="background:var(--pink)"></div>Data Models</div>
+</div>
+</header>
+
+<div class="canvas-wrap">
+<svg class="flow" viewBox="0 0 1200 900">
+<defs>
+<marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="var(--yel)"/></marker>
+<marker id="arrow-blue" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="var(--blue)"/></marker>
+<marker id="arrow-green" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="var(--green)"/></marker>
+<marker id="arrow-cyan" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="var(--cyan)"/></marker>
+<marker id="arrow-pur" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="var(--pur)"/></marker>
+</defs>
+
+<!-- ═══ GROUP BACKGROUNDS ═══ -->
+<rect class="group-bg" x="295" y="150" width="280" height="360" fill="#10b98108" stroke="var(--green)" stroke-opacity=".2"/>
+<text x="310" y="172" font-size="10" fill="var(--green)" font-weight="700" font-family="Outfit">SERVER MODULE</text>
+<rect class="group-bg" x="630" y="150" width="280" height="520" fill="#f9731608" stroke="var(--orange)" stroke-opacity=".2"/>
+<text x="645" y="172" font-size="10" fill="var(--orange)" font-weight="700" font-family="Outfit">PIPELINE MODULE</text>
+<rect class="group-bg" x="960" y="220" width="220" height="300" fill="#06b6d408" stroke="var(--cyan)" stroke-opacity=".2"/>
+<text x="975" y="242" font-size="10" fill="var(--cyan)" font-weight="700" font-family="Outfit">WEB SEARCH MODULE</text>
+<rect class="group-bg" x="30" y="580" width="250" height="220" fill="#8b5cf608" stroke="var(--pur)" stroke-opacity=".2"/>
+<text x="45" y="602" font-size="10" fill="var(--pur)" font-weight="700" font-family="Outfit">CONFIG / UTILS</text>
+
+<!-- ═══ MAIN.PY ═══ -->
+<g class="node" data-tip="main">
+<rect x="80" y="60" width="160" height="60" rx="12" fill="var(--bg2)" stroke="var(--blue)" stroke-width="2"/>
+<text class="node-label" x="160" y="85" text-anchor="middle">main.py</text>
+<text class="node-sub" x="160" y="102" text-anchor="middle">Point d'entrée</text>
+</g>
+
+<!-- ═══ SERVER.PY ═══ -->
+<g class="node" data-tip="server">
+<rect x="320" y="195" width="230" height="50" rx="10" fill="var(--bg2)" stroke="var(--green)" stroke-width="1.5"/>
+<text class="node-label" x="435" y="218" text-anchor="middle">server.py</text>
+<text class="node-sub" x="435" y="233" text-anchor="middle">create_app() → aiohttp.Application</text>
+</g>
+
+<!-- ═══ SERVER_CORE ═══ -->
+<g class="node" data-tip="state">
+<rect x="320" y="265" width="105" height="40" rx="8" fill="var(--bg3)" stroke="var(--green)" stroke-width="1"/>
+<text class="node-file" x="372" y="283" text-anchor="middle">state.py</text>
+<text class="node-sub" x="372" y="296" text-anchor="middle">AppState</text>
+</g>
+<g class="node" data-tip="gpu">
+<rect x="440" y="265" width="120" height="40" rx="8" fill="var(--bg3)" stroke="var(--green)" stroke-width="1"/>
+<text class="node-file" x="500" y="283" text-anchor="middle">gpu_monitor.py</text>
+<text class="node-sub" x="500" y="296" text-anchor="middle">GPU/RAM info</text>
+</g>
+<g class="node" data-tip="llama">
+<rect x="320" y="320" width="130" height="40" rx="8" fill="var(--bg3)" stroke="var(--green)" stroke-width="1"/>
+<text class="node-file" x="385" y="338" text-anchor="middle">llama_manager.py</text>
+<text class="node-sub" x="385" y="351" text-anchor="middle">start/stop llama</text>
+</g>
+<g class="node" data-tip="llm">
+<rect x="320" y="375" width="130" height="40" rx="8" fill="var(--bg3)" stroke="var(--green)" stroke-width="1"/>
+<text class="node-file" x="385" y="393" text-anchor="middle">llm_client.py</text>
+<text class="node-sub" x="385" y="406" text-anchor="middle">query_llm(prompt)</text>
+</g>
+<g class="node" data-tip="routes">
+<rect x="320" y="430" width="230" height="40" rx="8" fill="var(--bg3)" stroke="var(--green)" stroke-width="1"/>
+<text class="node-file" x="435" y="448" text-anchor="middle">routes.py</text>
+<text class="node-sub" x="435" y="461" text-anchor="middle">h_status, h_start_model, h_start_scan...</text>
+</g>
+
+<!-- ═══ PIPELINE ═══ -->
+<g class="node" data-tip="pipeline">
+<rect x="655" y="195" width="230" height="50" rx="10" fill="var(--bg2)" stroke="var(--orange)" stroke-width="1.5"/>
+<text class="node-label" x="770" y="218" text-anchor="middle">pipeline.py</text>
+<text class="node-sub" x="770" y="233" text-anchor="middle">PipelineOrchestrator + run_full_scan</text>
+</g>
+<g class="node" data-tip="querygen"><rect x="655" y="265" width="110" height="35" rx="7" fill="var(--bg3)" stroke="var(--orange)" stroke-width="1"/><text class="node-file" x="710" y="283" text-anchor="middle">query_gen.py</text><text class="node-sub" x="710" y="293" text-anchor="middle">Phase 1</text></g>
+<g class="node" data-tip="triage"><rect x="775" y="265" width="110" height="35" rx="7" fill="var(--bg3)" stroke="var(--orange)" stroke-width="1"/><text class="node-file" x="830" y="283" text-anchor="middle">result_triage.py</text><text class="node-sub" x="830" y="293" text-anchor="middle">Phase 3</text></g>
+<g class="node" data-tip="extractor"><rect x="655" y="315" width="110" height="35" rx="7" fill="var(--bg3)" stroke="var(--orange)" stroke-width="1"/><text class="node-file" x="710" y="333" text-anchor="middle">page_extract.py</text><text class="node-sub" x="710" y="343" text-anchor="middle">Phase 4</text></g>
+<g class="node" data-tip="assembler"><rect x="775" y="315" width="110" height="35" rx="7" fill="var(--bg3)" stroke="var(--orange)" stroke-width="1"/><text class="node-file" x="830" y="333" text-anchor="middle">assembler.py</text><text class="node-sub" x="830" y="343" text-anchor="middle">Phase 5</text></g>
+<g class="node" data-tip="followup"><rect x="655" y="365" width="110" height="35" rx="7" fill="var(--bg3)" stroke="var(--orange)" stroke-width="1"/><text class="node-file" x="710" y="383" text-anchor="middle">followup.py</text><text class="node-sub" x="710" y="393" text-anchor="middle">Phase 5b</text></g>
+<g class="node" data-tip="verif"><rect x="775" y="365" width="110" height="35" rx="7" fill="var(--bg3)" stroke="var(--orange)" stroke-width="1"/><text class="node-file" x="830" y="383" text-anchor="middle">verification.py</text><text class="node-sub" x="830" y="393" text-anchor="middle">Phase 6</text></g>
+<g class="node" data-tip="escal"><rect x="655" y="415" width="110" height="35" rx="7" fill="var(--bg3)" stroke="var(--orange)" stroke-width="1"/><text class="node-file" x="710" y="433" text-anchor="middle">escalation.py</text><text class="node-sub" x="710" y="443" text-anchor="middle">Wave fail</text></g>
+<g class="node" data-tip="progress"><rect x="775" y="415" width="110" height="35" rx="7" fill="var(--bg3)" stroke="var(--orange)" stroke-width="1"/><text class="node-file" x="830" y="433" text-anchor="middle">progress.py</text><text class="node-sub" x="830" y="443" text-anchor="middle">UI callback</text></g>
+
+<!-- ═══ WEB SEARCH ═══ -->
+<g class="node" data-tip="brave"><rect x="975" y="265" width="190" height="40" rx="8" fill="var(--bg3)" stroke="var(--cyan)" stroke-width="1"/><text class="node-file" x="1070" y="283" text-anchor="middle">brave_search.py</text><text class="node-sub" x="1070" y="296" text-anchor="middle">Brave + pagination</text></g>
+<g class="node" data-tip="fetcher"><rect x="975" y="325" width="190" height="40" rx="8" fill="var(--bg3)" stroke="var(--cyan)" stroke-width="1"/><text class="node-file" x="1070" y="343" text-anchor="middle">page_fetcher.py</text><text class="node-sub" x="1070" y="356" text-anchor="middle">HTTP GET → text+URLs</text></g>
+<g class="node" data-tip="ytcheck"><rect x="975" y="385" width="190" height="40" rx="8" fill="var(--bg3)" stroke="var(--cyan)" stroke-width="1"/><text class="node-file" x="1070" y="403" text-anchor="middle">youtube_checker.py</text><text class="node-sub" x="1070" y="416" text-anchor="middle">Verify subs/uploads</text></g>
+
+<!-- ═══ CONFIG/UTILS ═══ -->
+<g class="node" data-tip="settings"><rect x="45" y="620" width="105" height="35" rx="7" fill="var(--bg3)" stroke="var(--pur)" stroke-width="1"/><text class="node-file" x="97" y="641" text-anchor="middle">settings.py</text></g>
+<g class="node" data-tip="cities"><rect x="160" y="620" width="105" height="35" rx="7" fill="var(--bg3)" stroke="var(--pur)" stroke-width="1"/><text class="node-file" x="212" y="641" text-anchor="middle">cities.py</text></g>
+<g class="node" data-tip="logmod"><rect x="45" y="670" width="105" height="35" rx="7" fill="var(--bg3)" stroke="var(--pur)" stroke-width="1"/><text class="node-file" x="97" y="691" text-anchor="middle">logger.py</text></g>
+<g class="node" data-tip="jsonmod"><rect x="160" y="670" width="105" height="35" rx="7" fill="var(--bg3)" stroke="var(--pur)" stroke-width="1"/><text class="node-file" x="212" y="691" text-anchor="middle">json_extract.py</text></g>
+<g class="node" data-tip="ratemod"><rect x="45" y="720" width="105" height="35" rx="7" fill="var(--bg3)" stroke="var(--pur)" stroke-width="1"/><text class="node-file" x="97" y="741" text-anchor="middle">rate_limiter.py</text></g>
+<g class="node" data-tip="models"><rect x="160" y="720" width="105" height="35" rx="7" fill="var(--pink)" stroke="var(--pink)" stroke-width="1" fill-opacity=".15"/><text class="node-file" x="212" y="741" text-anchor="middle">data_models.py</text></g>
+
+<!-- ═══ PROMPTS ═══ -->
+<g class="node" data-tip="prompts">
+<rect x="655" y="490" width="230" height="50" rx="10" fill="#f59e0b10" stroke="var(--yel)" stroke-width="1" stroke-dasharray="4 2"/>
+<text class="node-file" x="770" y="512" text-anchor="middle" fill="var(--yel)">prompts/ (8 fichiers)</text>
+<text class="node-sub" x="770" y="527" text-anchor="middle">strategy, triage, extraction, assembly...</text>
+</g>
+
+<!-- ═══ ARROWS ═══ -->
+<!-- main → server -->
+<path class="arrow" d="M240,90 Q300,90 320,207" stroke="var(--blue)" marker-end="url(#arrow-blue)"/>
+<text class="arrow-label" x="260" y="140">import create_app</text>
+<text class="arrow-var" x="260" y="153">WEB_PORT → web.run_app()</text>
+
+<!-- server → routes -->
+<path class="arrow" d="M435,245 L435,430" stroke="var(--green)" marker-end="url(#arrow-green)"/>
+<text class="arrow-var" x="440" y="260" fill="var(--green)" font-size="8" font-family="JetBrains Mono">registre les 9 routes</text>
+
+<!-- routes → state -->
+<path class="arrow" d="M340,430 L372,305" stroke="var(--green)" stroke-opacity=".5" marker-end="url(#arrow-green)"/>
+<!-- routes → gpu -->
+<path class="arrow" d="M450,430 L500,305" stroke="var(--green)" stroke-opacity=".5" marker-end="url(#arrow-green)"/>
+<!-- routes → llama -->
+<path class="arrow" d="M370,430 L385,360" stroke="var(--green)" stroke-opacity=".5" marker-end="url(#arrow-green)"/>
+
+<!-- routes → pipeline (start scan) -->
+<path class="arrow" d="M550,450 Q600,450 655,220" stroke="var(--yel)" stroke-dasharray="6 3"/>
+<text class="arrow-label" x="570" y="400">h_start_scan →</text>
+<text class="arrow-var" x="570" y="412">asyncio.create_task(run_full_scan)</text>
+
+<!-- pipeline → sub-modules (vertical) -->
+<path class="arrow" d="M710,245 L710,265" stroke="var(--orange)" stroke-opacity=".4" marker-end="url(#arrowhead)"/>
+<path class="arrow" d="M830,245 L830,265" stroke="var(--orange)" stroke-opacity=".4" marker-end="url(#arrowhead)"/>
+
+<!-- pipeline → web_search -->
+<path class="arrow" d="M885,285 L975,285" stroke="var(--cyan)" marker-end="url(#arrow-cyan)"/>
+<text class="arrow-label" x="905" y="278">query, session</text>
+<text class="arrow-var" x="905" y="290">→ List[Dict] results</text>
+
+<path class="arrow" d="M885,345 L975,345" stroke="var(--cyan)" marker-end="url(#arrow-cyan)"/>
+<text class="arrow-label" x="905" y="338">url, session</text>
+<text class="arrow-var" x="905" y="350">→ {text, yt_urls}</text>
+
+<path class="arrow" d="M885,405 L975,405" stroke="var(--cyan)" marker-end="url(#arrow-cyan)"/>
+<text class="arrow-label" x="905" y="398">yt_url, session</text>
+<text class="arrow-var" x="905" y="410">→ {exists, subs, recent}</text>
+
+<!-- pipeline → prompts -->
+<path class="arrow" d="M770,450 L770,490" stroke="var(--yel)" stroke-opacity=".5" marker-end="url(#arrowhead)"/>
+<text class="arrow-var" x="775" y="475">TEMPLATE.format(**kwargs)</text>
+
+<!-- pipeline → llm_client -->
+<path class="arrow" d="M655,395 Q550,395 450,395" stroke="var(--green)" stroke-dasharray="4 2" marker-end="url(#arrow-green)"/>
+<text class="arrow-label" x="510" y="388">prompt string</text>
+<text class="arrow-var" x="510" y="400">→ Optional[dict] JSON</text>
+
+<!-- llm_client → llama-server (external) -->
+<path class="arrow" d="M320,395 Q200,395 160,440" stroke="#ff3b5c80" marker-end="url(#arrowhead)"/>
+<rect x="80" y="440" width="160" height="40" rx="10" fill="#ff3b5c15" stroke="var(--red)" stroke-width="1" stroke-dasharray="4 2"/>
+<text x="160" y="458" text-anchor="middle" font-size="11" fill="var(--red)" font-weight="700" font-family="Outfit">llama-server (ext)</text>
+<text x="160" y="472" text-anchor="middle" font-size="9" fill="var(--t3)" font-family="JetBrains Mono">port 8081</text>
+
+<!-- progress → state -->
+<path class="arrow" d="M830,450 Q830,500 550,500 Q380,500 372,305" stroke="var(--pink)" stroke-dasharray="4 2" marker-end="url(#arrowhead)"/>
+<text class="arrow-var" x="600" y="510" fill="var(--pink)">app_state.results[st][city][cat] = channel</text>
+
+<!-- web_search → rate_limiter -->
+<path class="arrow" d="M975,290 Q300,560 130,720" stroke="var(--pur)" stroke-opacity=".3" stroke-dasharray="3 3" marker-end="url(#arrow-pur)"/>
+
+<!-- config used by everyone (subtle dotted) -->
+<path d="M97,620 Q97,550 435,195" stroke="var(--pur)" stroke-opacity=".15" stroke-dasharray="2 4" fill="none"/>
+<path d="M212,620 Q212,550 770,195" stroke="var(--pur)" stroke-opacity=".15" stroke-dasharray="2 4" fill="none"/>
+
+<!-- ═══ BROWSER ═══ -->
+<rect x="80" y="530" width="160" height="40" rx="10" fill="#3b82f615" stroke="var(--blue)" stroke-width="1" stroke-dasharray="4 2"/>
+<text x="160" y="548" text-anchor="middle" font-size="11" fill="var(--blue)" font-weight="700" font-family="Outfit">Browser (index.html)</text>
+<text x="160" y="562" text-anchor="middle" font-size="9" fill="var(--t3)" font-family="JetBrains Mono">port 8080</text>
+<path class="arrow" d="M240,550 Q300,550 350,470" stroke="var(--blue)" stroke-dasharray="4 2" marker-end="url(#arrow-blue)"/>
+<text class="arrow-var" x="270" y="540" fill="var(--blue)">fetch /api/* every 3s</text>
+
+<!-- BRAVE EXTERNAL -->
+<rect x="990" y="445" width="170" height="40" rx="10" fill="#06b6d415" stroke="var(--cyan)" stroke-width="1" stroke-dasharray="4 2"/>
+<text x="1075" y="463" text-anchor="middle" font-size="11" fill="var(--cyan)" font-weight="700" font-family="Outfit">Brave Search (ext)</text>
+<text x="1075" y="477" text-anchor="middle" font-size="9" fill="var(--t3)" font-family="JetBrains Mono">search.brave.com</text>
+<path class="arrow" d="M1070,425 L1070,445" stroke="var(--cyan)" stroke-opacity=".5" marker-end="url(#arrow-cyan)"/>
+
+<!-- YOUTUBE EXTERNAL -->
+<rect x="990" y="500" width="170" height="40" rx="10" fill="#06b6d415" stroke="var(--cyan)" stroke-width="1" stroke-dasharray="4 2"/>
+<text x="1075" y="518" text-anchor="middle" font-size="11" fill="var(--cyan)" font-weight="700" font-family="Outfit">YouTube (ext)</text>
+<text x="1075" y="532" text-anchor="middle" font-size="9" fill="var(--t3)" font-family="JetBrains Mono">youtube.com</text>
+</svg>
+</div>
+
+<div class="tooltip" id="tip"></div>
+
+<script>
+const tips = {
+main: {t:"main.py",d:"Point d'entrée unique. Importe <code>create_app()</code> et <code>WEB_PORT</code> depuis server.py, puis lance <code>web.run_app(app, port=8080)</code>. Ne contient aucune logique.",s:"def main()",r:"Lance le serveur aiohttp (bloquant)"},
+server: {t:"server/server.py",d:"Crée l'application aiohttp en enregistrant les 9 routes HTTP depuis <code>routes.py</code>.",s:"def create_app() → web.Application",r:"Retourne l'app configurée à main.py"},
+state: {t:"server_core/state.py",d:"Singleton <code>AppState</code> — état global partagé entre tous les modules. Contient: llama_process, results, progress, resolution_status, scan_running...",s:"class AppState (singleton: app_state)",r:"Champs mutés en place par routes, pipeline et progress"},
+gpu: {t:"server_core/gpu_monitor.py",d:"<code>get_gpu_info()</code> exécute nvidia-smi → retourne VRAM used/total/free + GPU util. Fallback sur RAM si pas de GPU.<br><code>get_system_info()</code> → CPU%, RAM%.",s:"get_gpu_info() → dict\nget_system_info() → dict",r:"{used_mb, total_mb, free_mb, gpu_util, available}"},
+llama: {t:"server_core/llama_manager.py",d:"<code>start_llama(model_key, model_path, gpu_layers, ctx_size)</code> → lance subprocess llama-server, attend /health OK (60s max).<br><code>stop_llama()</code> → terminate/kill le process.<br><code>find_llama_server()</code> → cherche dans PATH + emplacements courants.",s:"start_llama(...) → dict\nstop_llama() → None",r:'{"status":"ok"} ou {"error":"..."}'},
+llm: {t:"server_core/llm_client.py",d:"<code>query_llm(prompt)</code> → POST vers llama-server (chat endpoint puis fallback completion). Parse la réponse via <code>extract_json()</code>.",s:"query_llm(prompt: str) → Optional[dict]",r:"Dict JSON parsé, ou None si échec/timeout"},
+routes: {t:"server_ui/routes.py",d:"9 endpoints HTTP. <code>h_status</code> lit app_state + GPU. <code>h_start_model</code> appelle start_llama. <code>h_start_scan</code> lance asyncio.create_task(run_full_scan). <code>h_results</code>/<code>h_logs</code> retournent données courantes.",s:"h_index, h_status, h_start_model, h_stop_model, h_start_scan, h_stop_scan, h_results, h_export, h_logs",r:"web.json_response({...})"},
+pipeline: {t:"pipeline/pipeline.py",d:"Orchestrateur 7 phases. <code>run_full_scan()</code> itère 50 états × 3 villes × 3 catégories. <code>PipelineOrchestrator</code> appelle séquentiellement: generate_queries → brave_search → triage → fetch_page → extract → assemble → followup → verify_youtube → verify_city → verify_category.",s:"run_full_scan() → None (async)\nprocess_state(name, cities) → StateResolution",r:"Écrit dans app_state.results et app_state.resolution_status"},
+querygen: {t:"pipeline_core/query_generator.py",d:"Envoie le prompt strategy au LLM avec city/state/category/wave. Retourne 6-8 requêtes avec angles différents. Fallback si LLM échoue.",s:"generate_queries(city, state, cat_key, cat_label, wave, prev, llm_func, log) → List[Dict]",r:'[{"angle":"reddit","query":"...","expected_yield":"..."}]'},
+triage: {t:"pipeline_core/result_triage.py",d:"Envoie les résultats Brave au LLM par batches de 30. Le LLM score chaque snippet 0-10. Filtre score ≥ MIN_TRIAGE_SCORE.",s:"triage_results(results, city, state, cat_label, min_score, llm_func) → List[Dict]",r:"Liste triée par score décroissant"},
+extractor: {t:"pipeline_core/page_extractor.py",d:"Envoie le texte d'une page + URLs YouTube au LLM. Extrait noms/URLs/quotes ville/quotes catégorie. Retourne Fragments + cross-city refs.",s:"extract_fragments(page_data, page_info, city, state, cat_label, wave, llm_func) → (List[Fragment], List[Dict])",r:"Tuple (fragments, cross_city_mentions)"},
+assembler: {t:"pipeline_core/candidate_assembler.py",d:"Envoie tous les fragments au LLM pour regrouper par personne. Le LLM identifie les noms/URLs partagés, évalue la force de l'evidence ville.",s:"assemble_candidates(fragments, city, state, cat_label, llm_func) → List[Dict]",r:"Liste de candidats avec city_evidence_strength, missing_info, etc."},
+followup: {t:"pipeline_core/followup_search.py",d:"Pour candidats sans URL YouTube ou evidence ville faible, demande au LLM de générer des requêtes ciblées. Exécute sur Brave. Met à jour candidates in-place.",s:"run_followups(incomplete, all_candidates, session, llm_func, log) → None",r:"Modifie candidates[] in-place (ajoute channel_url trouvées)"},
+verif: {t:"pipeline_core/verification.py",d:"<code>verify_city</code>: prompt adversarial — le LLM cherche des raisons de douter → final_city_score 0-1.<br><code>verify_category</code>: le LLM évalue si la description YouTube correspond à la catégorie.",s:"verify_city(cand, yt, city, state, llm) → dict\nverify_category(cand, yt, cat, llm) → dict",r:"{final_city_score, concerns} et {category_score, matches}"},
+escal: {t:"pipeline_core/escalation.py",d:"Quand une vague échoue: envoie les stats au LLM pour analyse. Le LLM explique pourquoi et recommande une stratégie différente pour la vague suivante.",s:"analyze_failure(city, state, cat, wave, queries, stats..., llm, log) → dict",r:"{failure_analysis, city_viability, recommended_strategy}"},
+progress: {t:"pipeline_ui/progress.py",d:"Callback appelé par pipeline.py lors d'événements. Écrit directement dans <code>app_state.progress</code> et <code>app_state.results</code>.",s:'progress_callback({"type":"category_resolved","state":"...","city":"...","channel":{}})',r:"Mutation de app_state (lu par routes.py → browser)"},
+brave: {t:"web_search_core/brave_search.py",d:"<code>brave_search_paginated(query, session, max_pages=4)</code> → GET search.brave.com avec pagination offset=0,20,40,60. Parse HTML, extrait titre+snippet+url. Rate-limited.",s:"brave_search_paginated(query, session, max_pages, log_func) → List[Dict]",r:'[{"url":"...","title":"...","snippet":"...","domain":"..."}]'},
+fetcher: {t:"web_search_core/page_fetcher.py",d:"<code>fetch_page(url, session)</code> → GET la page, strip scripts/nav/footer, extrait texte brut + toutes URLs YouTube trouvées dans le HTML.",s:"fetch_page(url, session, max_chars=20000) → Dict",r:'{"success":true,"text":"...","youtube_urls":["..."],"title":"..."}'},
+ytcheck: {t:"web_search_core/youtube_checker.py",d:"<code>verify_youtube_channel(url, session)</code> → GET page YouTube + /videos. Parse subscriberCountText, publishedTimeText. Vérifie 20k-150k et < 30 jours.",s:"verify_youtube_channel(url, session) → Dict",r:'{"exists":true,"subscribers_count":45000,"subscriber_in_range":true,"last_upload_recent":true}'},
+settings: {t:"config/settings.py",d:"Toutes les constantes: ports, seuils, limites rate, statuts. Importé par quasi tous les modules.",s:"Constantes: WEB_PORT, LLAMA_API, MAX_WAVES, SUB_MIN...",r:"Valeurs lues à l'import"},
+cities: {t:"config/cities.py",d:"50 états × 3 villes, 3 catégories avec labels et termes de recherche.",s:"US_STATES_CITIES, CATEGORIES, CATEGORY_LABELS, CATEGORY_SEARCH_TERMS",r:"Dicts/listes lus par pipeline"},
+logmod: {t:"utils/logger.py",d:"Singleton Logger: buffer circulaire (500 entrées), print console + stockage pour API /logs.",s:"logger.log(msg), logger.get_recent(n)",r:"Entrées formatées [HH:MM:SS] msg"},
+jsonmod: {t:"utils/json_extract.py",d:"3 stratégies: parse direct → strip markdown → regex {…}. Utilisé par llm_client.",s:"extract_json(text: str) → Optional[dict]",r:"Dict parsé ou None"},
+ratemod: {t:"utils/rate_limiter.py",d:"Délai global 2-4s + délai par domaine 5s. Lock asyncio. Utilisé par brave_search, page_fetcher, youtube_checker.",s:"rate_limiter.wait(domain: str)",r:"Await — bloque le temps nécessaire"},
+models: {t:"models/data_models.py",d:"<code>Fragment</code>: 1 info d'une page. <code>ChannelCandidate</code>: candidat assemblé. <code>CategoryResolution</code>/<code>CityResolution</code>/<code>StateResolution</code>: tracking du statut.",s:"Fragment, ChannelCandidate, CategoryResolution, CityResolution, StateResolution",r:"Instances dataclass avec to_dict(), compute_total_score()"},
+prompts: {t:"prompts/ (8 fichiers)",d:"1 fichier par prompt LLM. Chacun exporte <code>TEMPLATE</code> (string avec {placeholders}). Utilisés par pipeline_core/*.py via TEMPLATE.format(**kwargs).",s:"TEMPLATE = '...' dans chaque fichier",r:"String formatté envoyé à query_llm()"},
+};
+const tipEl=document.getElementById('tip');
+document.querySelectorAll('.node').forEach(n=>{
+  const k=n.dataset.tip; if(!k||!tips[k])return;
+  n.addEventListener('mouseenter',e=>{
+    const d=tips[k];
+    tipEl.innerHTML=`<h3>${d.t}</h3>${d.d}<div class="sig">▸ ${(d.s||'').replace(/\n/g,'<br>▸ ')}</div>${d.r?'<div class="ret">↳ '+d.r+'</div>':''}`;
+    tipEl.classList.add('show');
+  });
+  n.addEventListener('mousemove',e=>{
+    tipEl.style.left=Math.min(e.clientX+16,window.innerWidth-400)+'px';
+    tipEl.style.top=Math.min(e.clientY+16,window.innerHeight-200)+'px';
+  });
+  n.addEventListener('mouseleave',()=>tipEl.classList.remove('show'));
+});
+</script>
+</body>
+</html>

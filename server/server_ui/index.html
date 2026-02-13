@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YouTube Scout v2</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#09090b;--bg1:#111113;--bg2:#18181b;--bg3:#222225;
+  --bd:#2a2a2e;--bd2:#3f3f46;
+  --t1:#fafafa;--t2:#a1a1aa;--t3:#52525b;
+  --blue:#3b82f6;--green:#22c55e;--red:#ef4444;--amber:#f59e0b;
+  --purple:#a855f7;--pink:#ec4899;--cyan:#06b6d4;
+  --font:'DM Sans',system-ui,sans-serif;
+  --mono:'JetBrains Mono',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--font);background:var(--bg);color:var(--t1);min-height:100vh;overflow-x:hidden}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--bd);border-radius:3px}
+
+/* ── Layout ── */
+.app{max-width:1400px;margin:0 auto;padding:0 24px}
+
+/* ── Header ── */
+.hdr{padding:20px 0;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--bd)}
+.hdr-left{display:flex;align-items:center;gap:16px}
+.logo{width:42px;height:42px;background:linear-gradient(135deg,var(--red),var(--purple));border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 4px 20px #ef444440}
+.hdr h1{font-size:20px;font-weight:700;letter-spacing:-0.5px}
+.hdr h1 span{font-size:10px;background:linear-gradient(135deg,var(--green),var(--cyan));color:#000;font-weight:700;padding:2px 8px;border-radius:4px;margin-left:8px;vertical-align:middle}
+.hdr-status{display:flex;gap:12px;align-items:center}
+.pill{display:flex;align-items:center;gap:6px;padding:6px 14px;background:var(--bg2);border:1px solid var(--bd);border-radius:20px;font-size:12px;font-weight:500}
+.dot{width:8px;height:8px;border-radius:50%}.dot-on{background:var(--green);box-shadow:0 0 8px var(--green)}.dot-off{background:var(--red)}.dot-ld{background:var(--amber);animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── Tabs ── */
+.tabs{display:flex;gap:4px;margin:24px 0 20px;border-bottom:2px solid var(--bd);padding-bottom:0}
+.tab{padding:12px 24px;font-size:13px;font-weight:600;color:var(--t3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:.2s;border-radius:8px 8px 0 0}
+.tab:hover{color:var(--t2);background:var(--bg2)}
+.tab.active{color:var(--blue);border-color:var(--blue);background:var(--bg1)}
+.tab .badge{font-size:10px;background:var(--bg3);padding:2px 8px;border-radius:10px;margin-left:6px}
+.tab.active .badge{background:#3b82f620;color:var(--blue)}
+
+/* ── Tab panels ── */
+.panel{display:none}.panel.active{display:block}
+
+/* ── Setup panel (central) ── */
+.setup{max-width:800px;margin:0 auto}
+.setup-section{background:var(--bg1);border:1px solid var(--bd);border-radius:16px;padding:24px;margin-bottom:20px}
+.setup-section h2{font-size:15px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:10px}
+.setup-section h2 .num{width:28px;height:28px;background:var(--blue);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+
+/* ── Form elements ── */
+.field{margin-bottom:14px}
+.label{font-size:11px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.input{width:100%;padding:10px 14px;background:var(--bg);border:1px solid var(--bd);border-radius:8px;color:var(--t1);font-size:13px;font-family:var(--font);transition:.2s}
+.input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px #3b82f620}
+textarea.input{min-height:200px;font-family:var(--mono);font-size:12px;line-height:1.6;resize:vertical}
+.row{display:flex;gap:12px}.row>*{flex:1}
+.select{appearance:none;background:var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23a1a1aa'%3E%3Cpath d='M6 8L1 3h10z'/%3E%3C/svg%3E") no-repeat right 12px center;padding-right:32px}
+.slider-row{display:flex;align-items:center;gap:12px}
+.slider-row input[type=range]{flex:1;-webkit-appearance:none;height:4px;background:var(--bd);border-radius:2px;outline:none}
+.slider-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--blue);cursor:pointer;box-shadow:0 2px 6px #3b82f640}
+.slider-val{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--blue);min-width:50px;text-align:right}
+
+/* ── Buttons ── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 24px;border-radius:10px;border:none;font-size:13px;font-weight:700;cursor:pointer;transition:.2s;font-family:var(--font)}
+.btn:hover{transform:translateY(-1px)}.btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.btn-primary{background:var(--blue);color:#fff;box-shadow:0 4px 14px #3b82f640}
+.btn-success{background:var(--green);color:#fff;box-shadow:0 4px 14px #22c55e40}
+.btn-danger{background:var(--red);color:#fff}
+.btn-ghost{background:transparent;border:1px solid var(--bd);color:var(--t2)}.btn-ghost:hover{border-color:var(--t2);color:var(--t1)}
+.btn-group{display:flex;gap:8px;margin-top:16px}
+
+/* ── Strategy editor ── */
+.strategy-help{font-size:11px;color:var(--t3);line-height:1.6;margin-bottom:12px;padding:12px;background:var(--bg);border-radius:8px;border:1px solid var(--bd)}
+.strategy-help code{font-family:var(--mono);color:var(--cyan);font-size:11px}
+
+/* ── Steps visualization ── */
+.steps{display:flex;flex-direction:column;gap:8px;margin-top:16px}
+.step{background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:14px 18px;display:flex;align-items:center;gap:14px;transition:.2s}
+.step:hover{border-color:var(--bd2)}
+.step.active{border-color:var(--blue);background:#3b82f608}
+.step.done{border-color:var(--green);background:#22c55e08}
+.step.done .step-num{background:var(--green)}
+.step-num{width:30px;height:30px;border-radius:50%;background:var(--bd);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+.step.active .step-num{background:var(--blue);color:#fff}
+.step-info{flex:1;min-width:0}
+.step-name{font-size:13px;font-weight:600}.step-desc{font-size:11px;color:var(--t3);margin-top:2px}
+.step-status{font-size:11px;font-weight:600;padding:4px 10px;border-radius:6px}
+.step-status.pending{background:var(--bg2);color:var(--t3)}
+.step-status.running{background:#3b82f620;color:var(--blue)}
+.step-status.done{background:#22c55e20;color:var(--green)}
+
+/* ── Live log (centered, readable) ── */
+.live-log{background:var(--bg);border:1px solid var(--bd);border-radius:12px;padding:16px;max-height:400px;overflow-y:auto;font-family:var(--mono);font-size:11px;line-height:1.7;color:var(--t3)}
+.live-log .entry{padding:2px 0;border-bottom:1px solid #ffffff04}
+.live-log .entry:last-child{color:var(--green);border:none}
+.live-log .entry.warn{color:var(--amber)}
+.live-log .entry.err{color:var(--red)}
+
+/* ── Results panel ── */
+.results-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.results-header h2{font-size:20px;font-weight:700}
+.stats-row{display:flex;gap:12px;margin-bottom:20px}
+.stat-card{flex:1;background:var(--bg1);border:1px solid var(--bd);border-radius:12px;padding:16px;text-align:center}
+.stat-val{font-size:28px;font-weight:700;font-family:var(--mono)}.stat-val.blue{color:var(--blue)}.stat-val.green{color:var(--green)}.stat-val.red{color:var(--red)}.stat-val.amber{color:var(--amber)}
+.stat-label{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-top:4px}
+
+/* ── Query entries ── */
+.qe{background:var(--bg1);border:1px solid var(--bd);border-radius:10px;margin-bottom:8px;overflow:hidden}
+.qe-header{padding:12px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:.15s}.qe-header:hover{background:var(--bg2)}
+.qe-engine{font-size:9px;font-weight:700;padding:3px 8px;border-radius:6px;text-transform:uppercase}
+.qe-engine.google{background:#4285f420;color:#4285f4}.qe-engine.brave{background:#fb542b20;color:#fb542b}.qe-engine.http{background:var(--bg3);color:var(--t3)}
+.qe-query{flex:1;font-family:var(--mono);font-size:11px;color:var(--cyan);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qe-count{font-size:12px;font-weight:700;color:var(--green)}
+.qe-chevron{color:var(--t3);font-size:10px;transition:transform .2s}
+.qe.open .qe-chevron{transform:rotate(180deg)}
+.qe-body{display:none;border-top:1px solid var(--bd);max-height:300px;overflow-y:auto}.qe.open .qe-body{display:block}
+.qe-item{padding:8px 16px;border-bottom:1px solid #ffffff04;font-size:11px;display:grid;grid-template-columns:1fr 1.5fr;gap:8px}
+.qe-item:hover{background:var(--bg2)}
+.qe-title{font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qe-url{color:var(--blue);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qe-url a{color:inherit;text-decoration:none}.qe-url a:hover{text-decoration:underline}
+.qe-snippet{grid-column:1/-1;color:var(--t3);font-size:10px;line-height:1.4}
+
+/* ── Channel cards ── */
+.channel{display:flex;gap:14px;padding:16px;background:var(--bg1);border:1px solid var(--bd);border-radius:12px;margin-bottom:8px;transition:.2s}
+.channel:hover{border-color:var(--bd2);transform:translateX(4px)}
+.ch-avatar{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#fff;flex-shrink:0}
+.ch-avatar.cinema{background:linear-gradient(135deg,var(--pink),#be185d)}.ch-avatar.gaming{background:linear-gradient(135deg,var(--blue),#1d4ed8)}.ch-avatar.culture_entertainment{background:linear-gradient(135deg,var(--amber),#d97706)}
+.ch-info{flex:1;min-width:0}
+.ch-name{font-size:14px;font-weight:700}.ch-name a{color:var(--t1);text-decoration:none}.ch-name a:hover{color:var(--blue)}
+.ch-desc{font-size:11px;color:var(--t2);margin-top:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ch-meta{display:flex;gap:12px;margin-top:8px;font-size:11px;color:var(--t3);flex-wrap:wrap;align-items:center}
+.ch-meta span{display:flex;align-items:center;gap:4px}
+.score-bar{width:50px;height:5px;background:var(--bg);border-radius:3px;overflow:hidden;display:inline-block;vertical-align:middle}
+.score-fill{height:100%;border-radius:3px}
+.tag{font-size:9px;font-weight:700;padding:2px 8px;border-radius:6px;text-transform:uppercase}
+.tag-ok{background:#22c55e20;color:var(--green)}.tag-warn{background:#f59e0b20;color:var(--amber)}.tag-bad{background:#ef444420;color:var(--red)}
+
+/* ── GPU bar ── */
+.gpu-bar{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--bg);border:1px solid var(--bd);border-radius:10px;margin-top:12px}
+.gpu-label{font-size:11px;color:var(--t2);min-width:80px}
+.gpu-track{flex:1;height:8px;background:var(--bg2);border-radius:4px;overflow:hidden}
+.gpu-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--green),var(--blue),var(--purple));transition:width .5s}
+.gpu-fill.hot{background:linear-gradient(90deg,var(--amber),var(--red))}
+.gpu-val{font-family:var(--mono);font-size:12px;font-weight:700;min-width:70px;text-align:right}
+.gpu-mini{display:flex;gap:16px;margin-top:8px;font-size:11px;color:var(--t3)}
+.gpu-mini span{display:flex;align-items:center;gap:4px}
+.gpu-mini b{color:var(--t1);font-family:var(--mono)}
+
+/* ── Progress ring ── */
+.progress-ring{display:flex;align-items:center;gap:20px;padding:16px;background:var(--bg);border:1px solid var(--bd);border-radius:10px;margin-top:12px}
+.progress-ring svg{width:64px;height:64px;flex-shrink:0}
+.progress-info{flex:1}
+.progress-pct{font-size:24px;font-weight:700;font-family:var(--mono)}
+.progress-detail{font-size:11px;color:var(--t3);margin-top:4px}
+
+/* ── Saved model cards ── */
+.saved-model{display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg);border:1px solid var(--bd);border-radius:10px;margin-bottom:6px;cursor:pointer;transition:.15s}
+.saved-model:hover{border-color:var(--bd2);background:var(--bg2)}
+.saved-model.selected{border-color:var(--blue);background:#3b82f610}
+.sm-icon{width:36px;height:36px;background:var(--bg2);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.saved-model.selected .sm-icon{background:var(--blue)}
+.sm-info{flex:1;min-width:0}
+.sm-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sm-path{font-size:10px;color:var(--t3);font-family:var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sm-meta{font-size:10px;color:var(--t3);margin-top:2px}
+.sm-delete{width:28px;height:28px;border-radius:6px;border:none;background:transparent;color:var(--t3);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:.15s;flex-shrink:0}
+.sm-delete:hover{background:var(--red);color:#fff}
+.no-models{padding:16px;text-align:center;color:var(--t3);font-size:12px;background:var(--bg);border:1px dashed var(--bd);border-radius:10px}
+
+/* ── Checkpoint banner ── */
+
+/* ── Analysis grid (WHO/WHERE/WHAT/WHEN) ── */
+.analysis-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.adim{background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:12px;overflow:hidden}
+.adim-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.adim-title.who{color:var(--blue)}.adim-title.where{color:var(--green)}.adim-title.what{color:var(--purple)}.adim-title.when{color:var(--amber)}
+.atag{display:inline-block;padding:3px 8px;border-radius:5px;font-size:10px;margin:2px;line-height:1.4}
+.atag.explicit{background:#4a90ff18;color:var(--blue);border:1px solid #4a90ff30}
+.atag.refined{background:#2dd4a018;color:var(--green);border:1px solid #2dd4a030}
+.atag.implicit{background:#b060ff18;color:var(--purple);border:1px solid #b060ff30}
+.atag.reject{background:#ff446618;color:var(--red);border:1px solid #ff446630;text-decoration:line-through}
+.atag-label{font-size:9px;color:var(--t3);font-weight:600;text-transform:uppercase;display:block;margin-top:6px;margin-bottom:2px}
+
+/* ── Strategy tabs ── */
+.strat-tabs{display:flex;gap:6px;margin-bottom:12px}
+.stab{padding:8px 16px;border-radius:8px;border:1px solid var(--bd);background:var(--bg);font-size:11px;font-weight:600;cursor:pointer;transition:.15s}
+.stab:hover{border-color:var(--bd2)}.stab.active{border-color:var(--blue);background:#4a90ff10;color:var(--blue)}
+.stab.direct{border-color:var(--green);background:#2dd4a008}.stab.direct.active{background:#2dd4a015;color:var(--green)}
+.stab.semi{border-color:var(--amber);background:#ffb02008}.stab.semi.active{background:#ffb02015;color:var(--amber)}
+.stab.indirect{border-color:var(--purple);background:#b060ff08}.stab.indirect.active{background:#b060ff15;color:var(--purple)}
+.stab .cost{font-size:9px;color:var(--t3);display:block;margin-top:2px}
+
+/* ── Strategy tree ── */
+.strat-tree{border:1px solid var(--bd);border-radius:10px;background:var(--bg);overflow:hidden}
+.snode{border-bottom:1px solid #ffffff06}
+.snode:last-child{border:none}
+.snode-h{padding:10px 14px;display:flex;align-items:flex-start;gap:10px;cursor:pointer;transition:.1s}
+.snode-h:hover{background:var(--bg2)}
+.snode-id{font-family:var(--mono);font-size:10px;color:var(--t3);min-width:48px;padding-top:2px}
+.snode-body{flex:1;min-width:0}
+.snode-action{font-size:12px;font-weight:600}
+.snode-desc{font-size:10px;color:var(--t3);margin-top:2px}
+.snode-cond{font-size:9px;color:var(--amber);font-style:italic;margin-top:2px}
+.snode-queries{margin-top:6px;display:flex;flex-wrap:wrap;gap:4px}
+.sq{display:inline-block;padding:3px 8px;background:var(--bg2);border:1px solid var(--bd);border-radius:4px;font-family:var(--mono);font-size:9px;color:var(--cyan);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.snode-output{font-size:9px;color:var(--t3);margin-top:4px;font-style:italic}
+.snode-children{margin-left:24px;border-left:2px solid var(--bd);padding-left:0}
+.ckpt{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--bg1);border-top:2px solid var(--amber);padding:16px 24px;z-index:1000;box-shadow:0 -4px 30px rgba(0,0,0,.5)}
+.ckpt.show{display:block;animation:slideUp .3s ease}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.ckpt-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:20px}
+.ckpt-icon{font-size:32px;flex-shrink:0}
+.ckpt-info{flex:1;min-width:0}
+.ckpt-title{font-size:14px;font-weight:700;color:var(--amber);margin-bottom:4px}
+.ckpt-msg{font-size:12px;color:var(--t2)}
+.ckpt-detail{font-size:11px;color:var(--t3);margin-top:4px;font-family:var(--mono)}
+.ckpt-actions{display:flex;gap:8px;flex-shrink:0}
+.ckpt-actions .btn{padding:10px 20px}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Header -->
+  <header class="hdr">
+    <div class="hdr-left">
+      <div class="logo">🎬</div>
+      <h1>YouTube Scout<span>v2</span></h1>
+    </div>
+    <div class="hdr-status">
+      <div class="pill"><span class="dot" id="sDot"></span><span id="sStatus">Deconnecte</span></div>
+      <div class="pill" id="mChip">Aucun modele</div>
+      <div class="pill">✅ <span id="rCount">0</span>&nbsp;&nbsp;❌ <span id="fCount">0</span></div>
+    </div>
+  </header>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('setup')">⚙️ Configuration</div>
+    <div class="tab" onclick="switchTab('mission')">🎯 Mission &amp; Strategie</div>
+    <div class="tab" onclick="switchTab('live')">📡 Scan en direct</div>
+    <div class="tab" onclick="switchTab('queries')">🔍 Requetes <span class="badge" id="tabQN">0</span></div>
+    <div class="tab" onclick="switchTab('results')">📋 Resultats <span class="badge" id="tabRN">0</span></div>
+  </div>
+
+  <!-- ═══════ TAB: Setup ═══════ -->
+  <div class="panel active" id="panelSetup">
+    <div class="setup">
+      <div class="setup-section">
+        <h2><span class="num">1</span> Modele LLM</h2>
+
+        <!-- Saved models list -->
+        <div class="label" style="margin-bottom:8px">Modeles enregistres</div>
+        <div id="savedModels" style="margin-bottom:14px"></div>
+        
+        <!-- Add new model -->
+        <div style="border:1px dashed var(--bd);border-radius:10px;padding:14px;margin-bottom:14px">
+          <div class="label" style="margin-bottom:8px">Ajouter un modele</div>
+          <div class="row">
+            <div class="field" style="margin-bottom:0">
+              <input class="input" id="iNewName" placeholder="Nom (ex: Qwen 32B Q8)">
+            </div>
+            <div class="field" style="margin-bottom:0;display:flex;gap:8px">
+              <input class="input" id="iPath" placeholder="Chemin du .gguf" style="flex:1">
+              <label class="btn btn-ghost" style="padding:10px 14px;cursor:pointer;white-space:nowrap;flex-shrink:0">
+                📂 Parcourir
+                <input type="file" accept=".gguf" style="display:none" onchange="pickFile(this)">
+              </label>
+            </div>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <div class="field" style="margin-bottom:0">
+              <select class="input select" id="iPreset">
+                <option value="mistral3_q4">Preset: Mistral 3 Q4</option>
+                <option value="qwen25_32b_q8">Preset: Qwen 2.5 32B Q8</option>
+              </select>
+            </div>
+            <div class="field" style="margin-bottom:0"><div class="slider-row"><span style="font-size:11px;color:var(--t2);min-width:60px">Layers</span><input type="range" id="iNgl" min="0" max="80" value="35" oninput="$('lNgl').textContent=this.value"><span class="slider-val" id="lNgl">35</span></div></div>
+            <div class="field" style="margin-bottom:0"><div class="slider-row"><span style="font-size:11px;color:var(--t2);min-width:50px">Ctx</span><input type="range" id="iCtx" min="2048" max="32768" step="1024" value="4096" oninput="$('lCtx').textContent=this.value"><span class="slider-val" id="lCtx">4096</span></div></div>
+          </div>
+          <button class="btn btn-ghost" style="margin-top:10px" onclick="addModel()">➕ Enregistrer ce modele</button>
+        </div>
+
+        <div class="field">
+          <div class="label">Chemin llama-server (optionnel)</div>
+          <input class="input" id="iLlama" placeholder="Auto-detection">
+        </div>
+
+        <div class="btn-group">
+          <button class="btn btn-primary" id="bStart" onclick="startM()" disabled>🚀 Demarrer</button>
+          <button class="btn btn-danger" id="bStop" onclick="stopM()" style="display:none">⏹ Arreter</button>
+          <button class="btn btn-ghost" onclick="purgeVram()" title="Tuer les processus GPU et liberer la VRAM">🧹 Vider VRAM</button>
+        </div>
+
+        <div class="gpu-bar" style="margin-top:16px">
+          <span class="gpu-label">VRAM</span>
+          <div class="gpu-track"><div class="gpu-fill" id="vFill" style="width:0%"></div></div>
+          <span class="gpu-val" id="vTxt">0 / 0 MB</span>
+        </div>
+        <div class="gpu-mini">
+          <span>GPU: <b id="gUtil">0%</b></span>
+          <span>CPU: <b id="gCpu">0%</b></span>
+          <span>RAM: <b id="gRam">0%</b></span>
+          <span>Libre: <b id="gFree">0 MB</b></span>
+        </div>
+      </div>
+
+      <div class="setup-section">
+        <h2><span class="num">2</span> Verification Playwright</h2>
+        <p style="font-size:12px;color:var(--t2);margin-bottom:12px">Le navigateur Firefox est utilise pour la recherche web stealth.</p>
+        <button class="btn btn-ghost" onclick="checkTools()">🔍 Verifier l'installation</button>
+        <div id="toolsStatus" style="margin-top:10px;font-size:12px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ TAB: Mission & Strategy ═══════ -->
+  <div class="panel" id="panelMission">
+    <div class="setup">
+
+      <!-- STEP 1: Input -->
+      <div class="setup-section">
+        <h2><span class="num">1</span> Objectif de recherche</h2>
+        <p style="font-size:12px;color:var(--t2);margin-bottom:10px">
+          Decrivez votre recherche en langage naturel, ou importez un fichier de strategie.
+        </p>
+        <textarea class="input" id="planPrompt" rows="3" placeholder="Ex: Recherche moi tous les mangakas americains professionnels&#10;Ex: Trouver les youtubeurs cinema de moins de 100k abonnes dans chaque etat americain"></textarea>
+        <div class="btn-group" style="margin-top:10px">
+          <button class="btn btn-primary" onclick="analyzePlan()" id="bAnalyze">🧠 Analyser avec le LLM</button>
+          <label class="btn btn-ghost" style="cursor:pointer">
+            📄 Importer fichier .txt
+            <input type="file" accept=".txt,.md,.json" style="display:none" onchange="importStrategyFile(this)">
+          </label>
+          <button class="btn btn-ghost" onclick="loadSavedPlan()">📋 Charger le dernier plan</button>
+        </div>
+        <div id="planLoading" style="display:none;padding:12px;color:var(--amber);font-size:12px">
+          ⏳ Analyse en cours par le LLM... (2 appels: decomposition + strategies)
+        </div>
+      </div>
+
+      <!-- STEP 2: Analysis result -->
+      <div class="setup-section" id="secAnalysis" style="display:none">
+        <h2><span class="num">2</span> Decomposition QUI / OU / QUOI / QUAND</h2>
+        <div id="analysisGrid" class="analysis-grid"></div>
+      </div>
+
+      <!-- STEP 3: Strategy tree -->
+      <div class="setup-section" id="secStrategies" style="display:none">
+        <h2><span class="num">3</span> Strategies de recherche</h2>
+        <div id="stratTabs" class="strat-tabs"></div>
+        <div id="stratTree" class="strat-tree"></div>
+        <div style="margin-top:12px;font-family:var(--mono);font-size:11px;color:var(--t3)" id="stratStats"></div>
+      </div>
+
+      <!-- STEP 4: Modify -->
+      <div class="setup-section" id="secModify" style="display:none">
+        <h2><span class="num">✏️</span> Modifier la strategie</h2>
+        <p style="font-size:11px;color:var(--t3);margin-bottom:8px">
+          Decrivez ce que vous voulez changer. Le LLM regenerera la strategie.
+        </p>
+        <div style="display:flex;gap:8px">
+          <textarea class="input" id="modifyPrompt" rows="2" style="flex:1;margin:0" 
+            placeholder="Ex: Ajoute une etape qui cible les conventions manga aux USA&#10;Ex: Remplace la strategie indirecte par une recherche sur les reseaux sociaux"></textarea>
+          <button class="btn btn-primary" onclick="modifyPlan()" style="align-self:flex-end;white-space:nowrap">🔄 Modifier</button>
+        </div>
+        <!-- Manual strategy editor (raw text) -->
+        <details style="margin-top:10px">
+          <summary style="cursor:pointer;font-size:11px;color:var(--t3)">📝 Editeur brut (strategy.txt)</summary>
+          <textarea class="input" id="strategyText" rows="10" style="margin-top:6px;font-family:var(--mono);font-size:10px" placeholder="Chargement..."></textarea>
+          <div class="btn-group" style="margin-top:6px">
+            <button class="btn btn-ghost" onclick="saveStrategy()">💾 Sauvegarder le fichier</button>
+            <button class="btn btn-ghost" onclick="loadStrategy()">🔄 Recharger</button>
+          </div>
+        </details>
+      </div>
+
+      <!-- STEP 5: Validate & Launch -->
+      <div class="setup-section" id="secLaunch" style="display:none">
+        <h2><span class="num">▶</span> Valider et Lancer</h2>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;padding:12px 16px;background:var(--bg);border:1px solid var(--bd);border-radius:10px">
+          <span style="font-size:12px;font-weight:600">Mode:</span>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px" onclick="toggleAuto()">
+            <div id="autoToggle" style="width:44px;height:24px;border-radius:12px;background:var(--bd);position:relative;transition:.2s;cursor:pointer">
+              <div id="autoKnob" style="width:20px;height:20px;border-radius:50%;background:#fff;position:absolute;top:2px;left:2px;transition:.2s"></div>
+            </div>
+            <span id="autoLabel" style="color:var(--amber);font-weight:600">🔍 Validation manuelle</span>
+          </label>
+          <span style="font-size:10px;color:var(--t3);margin-left:auto">Checkpoints entre chaque phase</span>
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-success" id="bScan" onclick="startScan()" disabled>▶ Lancer la premiere vague</button>
+          <button class="btn btn-danger" id="bScanStop" onclick="stopScan()" style="display:none">⏹ Arreter</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════ TAB: Live ═══════ -->
+  <div class="panel" id="panelLive">
+    <div style="max-width:1000px;margin:0 auto">
+      <div style="display:flex;gap:20px;margin-bottom:20px">
+        <div style="flex:1">
+          <div class="progress-ring">
+            <svg viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="40" fill="none" stroke="var(--bd)" stroke-width="6"/>
+              <circle cx="50" cy="50" r="40" fill="none" stroke="var(--blue)" stroke-width="6" stroke-linecap="round" stroke-dasharray="251.33" stroke-dashoffset="251.33" id="pArc" transform="rotate(-90 50 50)"/>
+              <text x="50" y="54" text-anchor="middle" fill="var(--t1)" font-size="20" font-weight="700" font-family="var(--mono)" id="pPct">0%</text>
+            </svg>
+            <div class="progress-info">
+              <div class="progress-pct" id="pCur">En attente...</div>
+              <div class="progress-detail" id="pDetail">Configurez le modele et lancez le scan</div>
+            </div>
+          </div>
+        </div>
+        <div style="flex:1">
+          <div class="stats-row" style="margin-bottom:0">
+            <div class="stat-card"><div class="stat-val blue" id="pStates">0</div><div class="stat-label">Etats / 50</div></div>
+            <div class="stat-card"><div class="stat-val green" id="pOk">0</div><div class="stat-label">Resolus</div></div>
+            <div class="stat-card"><div class="stat-val red" id="pFail">0</div><div class="stat-label">Echoues</div></div>
+          </div>
+        </div>
+      </div>
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:12px">📡 Console en direct</h3>
+      <div class="live-log" id="logBox"><div class="entry">En attente du demarrage...</div></div>
+    </div>
+  </div>
+
+  <!-- ═══════ TAB: Queries ═══════ -->
+  <div class="panel" id="panelQueries">
+    <div style="max-width:1000px;margin:0 auto">
+      <div class="stats-row" id="qStats"></div>
+      <div id="qList"><div style="text-align:center;padding:60px;color:var(--t3)"><div style="font-size:40px;margin-bottom:10px">🔍</div>Les requetes apparaitront ici pendant le scan</div></div>
+    </div>
+  </div>
+
+  <!-- ═══════ TAB: Results ═══════ -->
+  <div class="panel" id="panelResults">
+    <div style="max-width:1000px;margin:0 auto">
+      <div class="results-header">
+        <h2>Resultats verifies</h2>
+        <button class="btn btn-ghost" onclick="location.href='/api/export'">💾 Exporter JSON</button>
+      </div>
+      <div class="flt" style="display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;align-items:center">
+        <input class="input" id="fSearch" placeholder="🔍 Filtrer..." oninput="render()" style="max-width:280px">
+        <span class="ft" style="padding:5px 12px;border-radius:16px;font-size:11px;font-weight:600;border:1px solid var(--bd);cursor:pointer;background:var(--bg2)" onclick="setF('all')">Tout</span>
+        <span class="ft" onclick="setF('cinema')">🎬 Cinema</span>
+        <span class="ft" onclick="setF('gaming')">🎮 Gaming</span>
+        <span class="ft" onclick="setF('culture')">🎭 Culture</span>
+      </div>
+      <div id="resList"><div style="text-align:center;padding:60px;color:var(--t3)"><div style="font-size:40px;margin-bottom:10px">📋</div>Aucun resultat encore</div></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Checkpoint banner (fixed bottom) -->
+<div class="ckpt" id="ckptBanner">
+  <div class="ckpt-inner">
+    <div class="ckpt-icon">✋</div>
+    <div class="ckpt-info">
+      <div class="ckpt-title" id="ckptTitle">Checkpoint</div>
+      <div class="ckpt-msg" id="ckptMsg">En attente de validation...</div>
+      <div class="ckpt-detail" id="ckptDetail"></div>
+    </div>
+    <div class="ckpt-actions">
+      <button class="btn btn-success" onclick="ckptRespond('continue')">✅ Valider</button>
+      <button class="btn btn-ghost" onclick="ckptRespond('skip')">⏭ Passer</button>
+      <button class="btn btn-primary" onclick="ckptRespond('auto')" title="Passer en mode automatique">🤖 Auto</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let selMod='mistral3_q4',actF='all',res={},resol={},qData=[],selectedModel=null;
+function $(id){return document.getElementById(id)}
+function esc(s){if(!s)return'';let d=document.createElement('div');d.textContent=s;return d.innerHTML}
+async function api(url,d){try{let o={method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d||{})};let r=d?await fetch(url,o):await fetch(url);return await r.json()}catch(e){return{error:e.message}}}
+
+// ── File picker ──
+function pickFile(input){
+  if(input.files&&input.files[0]){
+    let f=input.files[0];
+    // Browser gives us a fake path on Windows, but the name is real
+    $('iPath').value=f.name;
+    // Pre-fill name if empty
+    if(!$('iNewName').value){
+      let n=f.name.replace('.gguf','').replace(/-/g,' ');
+      $('iNewName').value=n;
+    }
+  }
+}
+
+// ── Saved models ──
+async function loadSavedModels(){
+  let r=await api('/api/models/list');
+  let models=r.models||[];
+  let box=$('savedModels');
+  if(!models.length){box.innerHTML='<div class="no-models">Aucun modele enregistre. Ajoutez-en un ci-dessous.</div>';return}
+  let html='';
+  for(let m of models){
+    let sel=selectedModel&&selectedModel.name===m.name?'selected':'';
+    html+='<div class="saved-model '+sel+'" onclick="selectModel('+esc(JSON.stringify(JSON.stringify(m)))+')">';
+    html+='<div class="sm-icon">🧠</div>';
+    html+='<div class="sm-info"><div class="sm-name">'+esc(m.name)+'</div><div class="sm-path">'+esc(m.path)+'</div>';
+    html+='<div class="sm-meta">Layers: '+esc(String(m.ngl||35))+' · Ctx: '+esc(String(m.ctx||4096))+'</div></div>';
+    html+='<button class="sm-delete" onclick="event.stopPropagation();deleteModel(\''+esc(m.name).replace(/'/g,"\\'")+'\')">🗑️</button>';
+    html+='</div>';
+  }
+  box.innerHTML=html;
+}
+
+function selectModel(jsonStr){
+  let m=JSON.parse(jsonStr);
+  selectedModel=m;
+  $('iPath').value=m.path;
+  $('iNgl').value=m.ngl||35;$('lNgl').textContent=m.ngl||35;
+  $('iCtx').value=m.ctx||4096;$('lCtx').textContent=m.ctx||4096;
+  selMod=m.preset||'mistral3_q4';
+  $('bStart').disabled=false;
+  loadSavedModels();// refresh selected state
+}
+
+async function addModel(){
+  let name=$('iNewName').value.trim();
+  let path=$('iPath').value.trim();
+  if(!name){alert('Donnez un nom au modele');return}
+  if(!path){alert('Specifiez le chemin du fichier .gguf');return}
+  await api('/api/models/add',{name:name,path:path,ngl:+$('iNgl').value,ctx:+$('iCtx').value,preset:$('iPreset').value});
+  $('iNewName').value='';
+  selectedModel={name:name,path:path,ngl:+$('iNgl').value,ctx:+$('iCtx').value,preset:$('iPreset').value};
+  $('bStart').disabled=false;
+  loadSavedModels();
+}
+
+async function deleteModel(name){
+  if(!confirm('Supprimer "'+name+'" de la liste?'))return;
+  await api('/api/models/delete',{name:name});
+  if(selectedModel&&selectedModel.name===name)selectedModel=null;
+  loadSavedModels();
+}
+
+// ── Auto/Validation toggle ──
+let isAutoMode=false;
+async function toggleAuto(){
+  isAutoMode=!isAutoMode;
+  let t=$('autoToggle'),k=$('autoKnob'),l=$('autoLabel');
+  if(isAutoMode){t.style.background='var(--green)';k.style.left='22px';l.innerHTML='🤖 <span style="color:var(--green)">Mode automatique</span>'}
+  else{t.style.background='var(--bd)';k.style.left='2px';l.innerHTML='🔍 <span style="color:var(--amber)">Validation manuelle</span>'}
+  await api('/api/auto-mode',{auto:isAutoMode});
+}
+
+// ── Checkpoint ──
+async function pollCheckpoint(){
+  let r=await api('/api/checkpoint');if(!r||r.error)return;
+  let banner=$('ckptBanner');
+  if(r.waiting){
+    banner.classList.add('show');
+    let names={'queries_ready':'Requetes generees','search_done':'Recherche terminee','candidates_found':'Candidats trouves'};
+    $('ckptTitle').textContent='✋ '+(names[r.name]||r.name);
+    $('ckptMsg').textContent=r.data.message||'En attente de validation';
+    // Show details
+    let det='';
+    if(r.name==='queries_ready'&&r.data.queries){
+      det=r.data.queries.map(q=>'R'+q.num+': '+q.query).join(' | ');
+    }else if(r.name==='search_done'){
+      det=r.data.total_links+' liens, '+r.data.youtube_links+' YouTube | '+
+        (r.data.html_files||[]).length+' fichiers HTML';
+    }else if(r.name==='candidates_found'&&r.data.candidates){
+      det=r.data.candidates.map(c=>c.name+(c.url?' ('+c.url.slice(0,30)+')':'')).join(' | ');
+    }
+    $('ckptDetail').textContent=det.slice(0,200);
+    // Switch to live tab to see context
+    switchTab('live');
+  }else{
+    banner.classList.remove('show');
+  }
+}
+
+async function ckptRespond(action){
+  await api('/api/checkpoint/respond',{action:action});
+  $('ckptBanner').classList.remove('show');
+  if(action==='auto'){
+    isAutoMode=true;
+    $('autoToggle').style.background='var(--green)';$('autoKnob').style.left='22px';
+    $('autoLabel').innerHTML='🤖 <span style="color:var(--green)">Mode automatique</span>';
+  }
+}
+async function purgeVram(){
+  if(!confirm('Cela va tuer tous les processus llama-server et tenter de liberer la VRAM. Continuer?'))return;
+  let btn=event.target;btn.disabled=true;btn.textContent='🧹 Nettoyage...';
+  let r=await api('/api/vram/purge',{});
+  btn.disabled=false;btn.textContent='🧹 Vider VRAM';
+  $('bStart').style.display='inline-flex';$('bStart').disabled=!selectedModel;
+  $('bStart').textContent='🚀 Demarrer';
+  $('bStop').style.display='none';
+  if(r.gpu)alert('VRAM apres purge: '+Math.round(r.gpu.used_mb)+' / '+Math.round(r.gpu.total_mb)+' MB');
+}
+
+function switchTab(name){
+  let tabs=['setup','mission','live','queries','results'];
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',tabs[i]===name));
+  tabs.forEach(t=>$(('panel'+t.charAt(0).toUpperCase()+t.slice(1))).classList.toggle('active',t===name));
+}
+
+async function startM(){
+  let p=$('iPath').value.trim();
+  if(!p&&selectedModel)p=selectedModel.path;
+  if(!p){alert('Selectionnez ou ajoutez un modele');return}
+  $('bStart').disabled=true;$('bStart').textContent='⏳ Chargement...';
+  let r=await api('/api/model/start',{model:selMod,model_path:p,gpu_layers:+$('iNgl').value,ctx_size:+$('iCtx').value,llama_server_path:$('iLlama').value.trim()});
+  if(r.error){alert('Erreur: '+r.error);$('bStart').disabled=false;$('bStart').textContent='🚀 Demarrer'}
+  else{$('bStart').style.display='none';$('bStop').style.display='inline-flex';$('bScan').disabled=false}
+}
+async function stopM(){await api('/api/model/stop',{});$('bStart').style.display='inline-flex';$('bStart').disabled=false;$('bStart').textContent='🚀 Demarrer le modele';$('bStop').style.display='none';$('bScan').disabled=true}
+async function startScan(){let r=await api('/api/scan/start',{});if(r.error){alert(r.error);return}$('bScan').style.display='none';$('bScanStop').style.display='inline-flex';switchTab('live')}
+async function stopScan(){await api('/api/scan/stop',{});$('bScan').style.display='inline-flex';$('bScanStop').style.display='none'}
+
+async function checkTools(){
+  $('toolsStatus').innerHTML='<span style="color:var(--amber)">Verification...</span>';
+  let r=await api('/api/check-tools');
+  let html='';
+  if(r.playwright_installed)html+='<div style="color:var(--green)">✅ Playwright installe</div>';
+  else html+='<div style="color:var(--red)">❌ Playwright non installe — pip install playwright</div>';
+  if(r.firefox_installed)html+='<div style="color:var(--green)">✅ Firefox disponible</div>';
+  else html+='<div style="color:var(--red)">❌ Firefox non disponible — python -m playwright install firefox</div>';
+  if(r.error)html+='<div style="color:var(--amber);margin-top:4px;font-size:11px">'+esc(r.error)+'</div>';
+  $('toolsStatus').innerHTML=html;
+}
+
+// ── Strategy Planner ──
+let currentPlan=null,activeStratIdx=0;
+
+async function analyzePlan(){
+  let prompt=$('planPrompt').value.trim();
+  if(!prompt){alert('Entrez un objectif de recherche');return}
+  $('bAnalyze').disabled=true;$('planLoading').style.display='block';
+  let r=await api('/api/planner/analyze',{prompt:prompt});
+  $('bAnalyze').disabled=false;$('planLoading').style.display='none';
+  if(r.error){alert('Erreur LLM: '+r.error);return}
+  currentPlan=r;
+  renderAnalysis(r.analysis);
+  renderStrategies(r.strategies);
+  showPlanSections(!!r.analysis);
+  if(r.query_counts)$('stratStats').textContent='Total: '+r.query_counts.total+' requetes (directe: '+(r.query_counts.direct||0)+', semi: '+(r.query_counts.semi_direct||0)+', indirecte: '+(r.query_counts.indirect||0)+')';
+}
+function showPlanSections(show){
+  for(let id of ['secAnalysis','secStrategies','secModify','secLaunch'])
+    $(id).style.display=show?'block':'none';
+}
+async function loadSavedPlan(){
+  let r=await api('/api/planner/plan');
+  if(r.error){alert('Aucun plan sauvegarde');return}
+  currentPlan=r;
+  if(r.analysis)renderAnalysis(r.analysis);
+  if(r.strategies){activeStratIdx=0;renderStrategies(r.strategies)}
+  showPlanSections(!!(r.analysis||r.strategies));
+  if(r.query_counts)$('stratStats').textContent='Total: '+r.query_counts.total+' requetes';
+}
+async function modifyPlan(){
+  let mod=$('modifyPrompt').value.trim();if(!mod)return;
+  let orig=$('planPrompt').value.trim();
+  $('planPrompt').value=orig+'\n\nMODIFICATION DEMANDEE: '+mod;
+  await analyzePlan();$('modifyPrompt').value='';
+}
+function importStrategyFile(input){
+  if(!input.files||!input.files[0])return;
+  let reader=new FileReader();
+  reader.onload=function(e){
+    let text=e.target.result;
+    try{let d=JSON.parse(text);if(d.strategies){currentPlan=d;if(d.analysis)renderAnalysis(d.analysis);renderStrategies(d.strategies);showPlanSections(true);return}}catch(ex){}
+    $('planPrompt').value=text;
+  };reader.readAsText(input.files[0]);
+}
+function renderAnalysis(a){
+  if(!a)return;
+  let dims=[{key:'who',label:'QUI (Cibles)',icon:'👤'},{key:'where',label:'OU (Lieux)',icon:'📍'},{key:'what',label:'QUOI (Artefacts)',icon:'📄'},{key:'when',label:'QUAND (Temps)',icon:'🕐'}];
+  let html='';
+  if(a.objective){
+    html+='<div style="grid-column:1/-1;padding:10px 14px;background:var(--bg);border:1px solid var(--bd);border-radius:10px;margin-bottom:4px">';
+    html+='<div style="font-size:10px;color:var(--t3);text-transform:uppercase;margin-bottom:4px">Objectif — '+esc(a.domain||'')+' — Confiance: '+Math.round((a.confidence||0)*100)+'%</div>';
+    html+='<div style="font-size:13px;font-weight:600">'+esc(a.objective)+'</div></div>';
+  }
+  for(let d of dims){
+    let dim=a[d.key];if(!dim)continue;
+    html+='<div class="adim"><div class="adim-title '+d.key+'">'+d.icon+' '+d.label+'</div>';
+    let sections=[['Explicite','explicit','explicit'],['Affine','explicit_refined','refined'],['Implicite','implicit','implicit'],['Rejets','rejections','reject']];
+    for(let[label,field,cls] of sections){
+      if(dim[field]&&dim[field].length){html+='<div class="atag-label">'+label+'</div>';for(let t of dim[field])html+='<span class="atag '+cls+'">'+esc(t)+'</span>';}
+    }
+    html+='</div>';
+  }
+  $('analysisGrid').innerHTML=html;
+}
+function selectStrat(i){activeStratIdx=i;renderStrategies((currentPlan||{}).strategies||[]);}
+function renderStrategies(strats){
+  if(!strats||!strats.length)return;
+  let tierCls={direct:'direct',semi_direct:'semi',indirect:'indirect'};
+  let tabs='';
+  for(let i=0;i<strats.length;i++){
+    let s=strats[i],cls=tierCls[s.tier]||'';
+    tabs+='<div class="stab '+cls+(i===activeStratIdx?' active':'')+'" onclick="selectStrat('+i+')">';
+    tabs+=esc(s.name)+'<span class="cost">Cout: '+(s.estimated_cost||'?')+' | Rendement: '+(s.estimated_yield||'?')+'</span></div>';
+  }
+  $('stratTabs').innerHTML=tabs;
+  let s=strats[activeStratIdx];
+  let html='';
+  if(s.description)html+='<div style="padding:10px 14px;font-size:11px;color:var(--t2);border-bottom:1px solid var(--bd)">'+esc(s.description)+'</div>';
+  html+=renderSteps(s.steps||[]);
+  $('stratTree').innerHTML=html;
+}
+function renderSteps(steps){
+  let html='';
+  for(let step of steps){
+    html+='<div class="snode"><div class="snode-h"><div class="snode-id">'+esc(step.id||'')+'</div><div class="snode-body">';
+    html+='<div class="snode-action">'+esc(step.action||'')+'</div>';
+    if(step.description)html+='<div class="snode-desc">'+esc(step.description)+'</div>';
+    if(step.condition&&step.condition!=='always')html+='<div class="snode-cond">⚡ '+esc(step.condition)+'</div>';
+    if(step.queries&&step.queries.length){html+='<div class="snode-queries">';for(let q of step.queries)html+='<span class="sq" title="'+esc(q)+'">→ '+esc(q)+'</span>';html+='</div>';}
+    if(step.expected_output)html+='<div class="snode-output">↳ '+esc(step.expected_output)+'</div>';
+    html+='</div></div>';
+    if(step.sub_steps&&step.sub_steps.length)html+='<div class="snode-children">'+renderSteps(step.sub_steps)+'</div>';
+    html+='</div>';
+  }
+  return html;
+}
+// Legacy strategy.txt
+async function loadStrategy(){let r=await api('/api/strategy');if(r.strategy)$('strategyText').value=r.strategy}
+async function saveStrategy(){let r=await api('/api/strategy',{strategy:$('strategyText').value});if(r.status==='ok')alert('Fichier sauvegarde!');else alert('Erreur: '+(r.error||'?'))}
+
+// Polling
+async function poll(){
+  let d=await api('/api/status');if(d.error)return;
+  let dot=$('sDot'),st=$('sStatus');
+  if(d.model.server_running){dot.className='dot dot-on';st.textContent='En ligne';$('mChip').textContent=d.model.name;$('bScan').disabled=false}
+  else if(d.scan&&d.scan.running){dot.className='dot dot-ld';st.textContent='Scan...'}
+  else{dot.className='dot dot-off';st.textContent='Deconnecte';$('mChip').textContent='Aucun modele'}
+  if(d.llama_server_found&&!$('iLlama').value)$('iLlama').placeholder='Detecte: '+d.llama_server_found;
+  // GPU
+  let g=d.gpu||{},pct=g.total_mb>0?g.used_mb/g.total_mb*100:0;
+  $('vTxt').textContent=Math.round(g.used_mb||0)+' / '+Math.round(g.total_mb||0)+' MB';
+  let vf=$('vFill');vf.style.width=pct+'%';vf.className='gpu-fill'+(pct>85?' hot':'');
+  $('gUtil').textContent=Math.round(g.gpu_util||0)+'%';$('gRam').textContent=(d.system||{}).ram_percent||'0%';
+  $('gCpu').textContent=Math.round((d.system||{}).cpu_percent||0)+'%';$('gFree').textContent=Math.round(g.free_mb||0)+' MB';
+  // Progress
+  let s=(d.scan||{}).progress||{},total=s.total_tasks||450,done=s.completed_tasks||0,ok=s.resolved_tasks||0,fail=s.failed_tasks||0;
+  let pp=total>0?done/total*100:0;
+  $('pPct').textContent=Math.round(pp)+'%';$('pArc').setAttribute('stroke-dashoffset',251.33-(251.33*pp/100));
+  $('pStates').textContent=(s.completed_states||0);$('pOk').textContent=ok;$('pFail').textContent=fail;
+  $('rCount').textContent=ok;$('fCount').textContent=fail;
+  if(s.current_state)$('pCur').innerHTML='<b>'+esc(s.current_state)+'</b> › '+esc(s.current_city||'')+' › '+esc(s.current_category||'');
+  $('pDetail').textContent=done+'/'+total+' taches'+(s.eta_seconds>0?' — ETA '+Math.floor(s.eta_seconds/60)+'m':'');
+  if(!(d.scan||{}).running&&done>=total&&done>0){$('bScan').style.display='inline-flex';$('bScanStop').style.display='none'}
+  // Results
+  if((d.results_count||0)>0||(d.scan||{}).running){
+    let rd=await api('/api/results');if(rd&&rd.results){res=rd.results;resol=rd.resolution||{};render()}
+  }
+  // Queries
+  let qd=await api('/api/queries');if(qd&&qd.queries){qData=qd.queries;renderQueries()}
+  // Logs
+  let ld=await api('/api/logs');
+  if(ld&&ld.logs&&ld.logs.length>0){let lb=$('logBox');lb.innerHTML=ld.logs.slice(-80).map(l=>{
+    let cls='entry';if(l.includes('[ERROR]')||l.includes('[FAIL]'))cls+=' err';else if(l.includes('[RATE LIMITED]')||l.includes('[ATTENTION]'))cls+=' warn';
+    return'<div class="'+cls+'">'+esc(l)+'</div>'}).join('');lb.scrollTop=lb.scrollHeight}
+}
+
+function setF(f){actF=f;render()}
+function render(){
+  let box=$('resList'),q=($('fSearch').value||'').toLowerCase(),html='',tc=0;
+  for(let sn of Object.keys(res).sort()){
+    let cities=res[sn];if(!cities)continue;
+    for(let cn of Object.keys(cities).sort()){
+      let cats=cities[cn];if(!cats)continue;
+      for(let[ck,ch]of Object.entries(cats)){
+        if(!ch||(!(ch.channel_name||ch.yt_real_name)&&ch.status!=='failed'))continue;
+        if(actF!=='all'){if(actF==='culture'&&ck!=='culture_entertainment')continue;if(actF!=='culture'&&ck!==actF)continue}
+        if(q&&!sn.toLowerCase().includes(q)&&!cn.toLowerCase().includes(q)&&!(ch.channel_name||'').toLowerCase().includes(q))continue;
+        if(ch.channel_name||ch.yt_real_name){
+          let name=ch.yt_real_name||ch.channel_name||'?',url=ch.channel_url||'#',ini=name.substring(0,2).toUpperCase();
+          let subs=ch.yt_subscribers_text||ch.yt_subscribers_count||'?',score=ch.total_score||0,cityS=ch.city_score||0;
+          let sColor=score>=.7?'var(--green)':score>=.5?'var(--amber)':'var(--red)';
+          let desc=ch.yt_description||ch.description||'';
+          html+='<div class="channel"><div class="ch-avatar '+ck+'">'+ini+'</div><div class="ch-info">';
+          html+='<div class="ch-name"><a href="'+esc(url)+'" target="_blank">'+esc(name)+'</a></div>';
+          if(desc)html+='<div class="ch-desc">'+esc(desc)+'</div>';
+          html+='<div class="ch-meta"><span>👥 '+esc(String(subs))+'</span><span>📍 '+esc(cn)+', '+esc(sn)+'</span>';
+          html+='<span>Score: <span class="score-bar"><span class="score-fill" style="width:'+Math.round(score*100)+'%;background:'+sColor+'"></span></span> '+Math.round(score*100)+'%</span>';
+          let recent=ch.yt_last_upload_recent;
+          html+=recent?'<span class="tag tag-ok">Recent</span>':'<span class="tag tag-warn">'+esc(ch.yt_last_upload_text||'?')+'</span>';
+          html+='</div></div></div>';tc++;
+        }else if(ch.status==='failed'){
+          html+='<div class="channel" style="opacity:.5"><div class="ch-avatar" style="background:var(--bd)">❌</div><div class="ch-info"><div class="ch-name">'+esc(cn)+' — '+esc(ck)+'</div><div class="ch-desc" style="color:var(--red)">'+esc(ch.failure_reason||'Non resolu')+'</div></div></div>';
+        }
+      }
+    }
+  }
+  if(!html)html='<div style="text-align:center;padding:60px;color:var(--t3)"><div style="font-size:40px;margin-bottom:10px">📋</div>Aucun resultat'+(q?' pour "'+esc(q)+'"':' encore')+'</div>';
+  box.innerHTML=html;$('tabRN').textContent=tc;
+}
+
+function renderQueries(){
+  if(!qData||!qData.length){$('tabQN').textContent='0';return}
+  let totalQ=qData.length,totalR=qData.reduce((a,q)=>a+q.results_count,0);
+  $('tabQN').textContent=totalQ;
+  $('qStats').innerHTML='<div class="stat-card"><div class="stat-val blue">'+totalQ+'</div><div class="stat-label">Requetes</div></div><div class="stat-card"><div class="stat-val green">'+totalR+'</div><div class="stat-label">Liens trouves</div></div>';
+  let html='';
+  for(let i=qData.length-1;i>=Math.max(0,qData.length-50);i--){
+    let q=qData[i],eng=q.engine||'brave';
+    html+='<div class="qe" onclick="this.classList.toggle(\'open\')"><div class="qe-header">';
+    html+='<span class="qe-engine '+eng+'">'+eng+'</span>';
+    html+='<span class="qe-query">'+esc(q.query)+'</span>';
+    html+='<span class="qe-count">'+q.results_count+' res.</span>';
+    html+='<span class="qe-chevron">▼</span></div><div class="qe-body">';
+    if(q.results&&q.results.length>0){for(let r of q.results){
+      html+='<div class="qe-item"><div class="qe-title">'+esc(r.title)+'</div><div class="qe-url"><a href="'+esc(r.url)+'" target="_blank">'+esc(r.url)+'</a></div>';
+      if(r.snippet)html+='<div class="qe-snippet">'+esc(r.snippet)+'</div>';
+      html+='</div>';
+    }}else html+='<div style="padding:12px 16px;color:var(--t3);font-size:11px">Aucun resultat</div>';
+    html+='</div></div>';
+  }
+  $('qList').innerHTML=html;
+}
+
+// Init
+loadStrategy();
+loadSavedModels();
+setInterval(poll,3000);
+setInterval(pollCheckpoint,1500);
+poll();
+</script>
+</body>
+</html>

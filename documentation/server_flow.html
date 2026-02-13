@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Server Module — Flow</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Outfit:wght@300;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0b10;--bg2:#12131c;--bg3:#1a1c28;--bd:#2a2d3e;--t1:#e8eaf0;--t2:#8b90a8;--t3:#4e526a;--green:#10b981;--blue:#3b82f6;--yel:#f59e0b;--cyan:#06b6d4;--red:#ff3b5c;--pur:#8b5cf6;--orange:#f97316;--pink:#ec4899}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--t1);padding:40px 60px}
+h1{font-size:36px;font-weight:900;color:var(--green);margin-bottom:6px}
+.sub{font-size:13px;color:var(--t2);margin-bottom:20px}
+nav{display:flex;gap:8px;margin-bottom:30px}
+nav a{padding:7px 18px;border-radius:20px;font-size:12px;font-weight:700;text-decoration:none;border:1px solid var(--bd);color:var(--t2);transition:.2s}
+nav a:hover{border-color:var(--green);color:var(--t1)}
+nav a.active{background:var(--green);color:#fff;border-color:var(--green)}
+.card{background:var(--bg2);border:1px solid var(--bd);border-radius:16px;padding:24px;margin-bottom:16px}
+.card h2{font-size:16px;font-weight:700;color:var(--green);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.card h2 .file{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--t3);font-weight:400}
+.fn{background:var(--bg3);border:1px solid var(--bd);border-radius:10px;padding:14px;margin-bottom:10px}
+.fn-name{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan);font-weight:700}
+.fn-sig{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--t2);margin:4px 0}
+.fn-io{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+.fn-in,.fn-out{padding:8px 10px;border-radius:6px;font-size:11px}
+.fn-in{background:#3b82f610;border:1px solid #3b82f630}.fn-out{background:#10b98110;border:1px solid #10b98130}
+.fn-in b{color:var(--blue)}.fn-out b{color:var(--green)}
+.fn-in code,.fn-out code{font-family:'JetBrains Mono',monospace;font-size:10px;display:block;margin-top:3px;color:var(--t2)}
+.arrow-box{display:flex;align-items:center;gap:8px;padding:10px 16px;background:var(--bg3);border-left:3px solid var(--yel);border-radius:0 8px 8px 0;margin:8px 0;font-size:11px;color:var(--t2)}
+.arrow-box b{color:var(--yel)}
+.arrow-box code{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--cyan)}
+.seq{counter-reset:step}
+.seq-step{counter-increment:step;padding-left:34px;position:relative;margin-bottom:8px;font-size:12px;color:var(--t2);line-height:1.6}
+.seq-step::before{content:counter(step);position:absolute;left:0;width:24px;height:24px;border-radius:50%;background:var(--green);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.seq-step code{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--cyan);background:var(--bg3);padding:1px 5px;border-radius:3px}
+</style>
+</head>
+<body>
+<h1>🖥️ Server Module</h1>
+<div class="sub">server/ — Serveur web, gestion LLM, monitoring GPU, API REST</div>
+<nav>
+<a href="architecture_globale.html">🌐 Vue Globale</a>
+<a class="active" href="server_flow.html">🖥️ Server</a>
+<a href="pipeline_flow.html">⚙️ Pipeline</a>
+<a href="web_search_flow.html">🔍 Web Search</a>
+</nav>
+
+<div class="card">
+<h2>server.py <span class="file">server/server.py</span></h2>
+<div class="fn">
+<div class="fn-name">create_app()</div>
+<div class="fn-sig">→ aiohttp.web.Application</div>
+<div class="fn-io">
+<div class="fn-in"><b>INPUT:</b> Rien<code>Importe les 9 handlers depuis routes.py</code></div>
+<div class="fn-out"><b>OUTPUT:</b> Application aiohttp configurée<code>app avec 9 routes enregistrées</code></div>
+</div>
+</div>
+<div class="arrow-box"><b>→</b> Retournée à <code>main.py</code> qui appelle <code>web.run_app(app, port=8080)</code></div>
+</div>
+
+<div class="card">
+<h2>state.py <span class="file">server/server_core/state.py</span></h2>
+<div class="fn">
+<div class="fn-name">class AppState (singleton: app_state)</div>
+<div class="fn-sig">État global partagé — muté par routes.py, pipeline.py, progress.py</div>
+<div class="fn-io">
+<div class="fn-in"><b>CHAMPS ÉCRITS PAR:</b><code>routes → llama_process, is_running<br>pipeline → results, resolution_status<br>progress → progress.resolved_tasks</code></div>
+<div class="fn-out"><b>CHAMPS LUS PAR:</b><code>routes.h_status → tout<br>routes.h_results → results<br>routes.h_logs → logger.entries</code></div>
+</div>
+</div>
+</div>
+
+<div class="card">
+<h2>gpu_monitor.py <span class="file">server/server_core/gpu_monitor.py</span></h2>
+<div class="fn">
+<div class="fn-name">get_gpu_info()</div>
+<div class="fn-sig">→ dict</div>
+<div class="fn-io">
+<div class="fn-in"><b>INPUT:</b> Rien<code>Exécute subprocess nvidia-smi</code></div>
+<div class="fn-out"><b>OUTPUT:</b><code>{"used_mb": 4200, "total_mb": 8192,<br>"free_mb": 3992, "gpu_util": 45,<br>"available": True}</code></div>
+</div>
+</div>
+<div class="fn">
+<div class="fn-name">get_system_info()</div>
+<div class="fn-sig">→ dict</div>
+<div class="fn-io">
+<div class="fn-in"><b>INPUT:</b> Rien<code>Lit psutil.virtual_memory()</code></div>
+<div class="fn-out"><b>OUTPUT:</b><code>{"cpu_percent": 23.5, "ram_used_gb": 12.4,<br>"ram_total_gb": 32.0, "ram_percent": 38.7}</code></div>
+</div>
+</div>
+<div class="arrow-box"><b>Appelé par</b> <code>routes.h_status()</code> toutes les 3 secondes (polling browser)</div>
+</div>
+
+<div class="card">
+<h2>llama_manager.py <span class="file">server/server_core/llama_manager.py</span></h2>
+<div class="fn">
+<div class="fn-name">find_llama_server()</div>
+<div class="fn-sig">→ str (path) ou "" (not found)</div>
+<div class="fn-io">
+<div class="fn-in"><b>INPUT:</b> Rien<code>Cherche: PATH, USERPROFILE, BASE_DIR</code></div>
+<div class="fn-out"><b>OUTPUT:</b><code>"C:\\Users\\X\\llama.cpp\\build\\bin\\llama-server.exe"</code></div>
+</div>
+</div>
+<div class="fn">
+<div class="fn-name">start_llama(model_key, model_path, gpu_layers, ctx_size, llama_path)</div>
+<div class="fn-sig">async → dict</div>
+<div class="fn-io">
+<div class="fn-in"><b>INPUT:</b><code>model_key: "mistral3_q4"<br>model_path: "C:\\models\\model.gguf"<br>gpu_layers: 35, ctx_size: 4096<br>llama_path: "" (auto-detect)</code></div>
+<div class="fn-out"><b>OUTPUT:</b><code>{"status": "ok"} si succès<br>{"error": "Timeout 60s"} si échec</code></div>
+</div>
+</div>
+<div class="seq">
+<div class="seq-step">Appelle <code>stop_llama()</code> pour tuer tout process existant</div>
+<div class="seq-step">Met à jour <code>app_state.active_model</code> et <code>app_state.model_path</code></div>
+<div class="seq-step">Lance <code>subprocess.Popen([exe, -m, path, --host, --port, -ngl, -c])</code></div>
+<div class="seq-step">Boucle 60 secondes: <code>GET http://127.0.0.1:8081/health</code></div>
+<div class="seq-step">Si status 200 → <code>app_state.is_running = True</code> → retourne <code>{"status":"ok"}</code></div>
+</div>
+</div>
+
+<div class="card">
+<h2>llm_client.py <span class="file">server/server_core/llm_client.py</span></h2>
+<div class="fn">
+<div class="fn-name">query_llm(prompt, timeout=180)</div>
+<div class="fn-sig">async → Optional[dict]</div>
+<div class="fn-io">
+<div class="fn-in"><b>INPUT:</b><code>prompt: str (le prompt formatté)<br>timeout: 180 secondes</code></div>
+<div class="fn-out"><b>OUTPUT:</b><code>dict (JSON parsé) ou None</code></div>
+</div>
+</div>
+<div class="seq">
+<div class="seq-step">Essaie <code>POST /v1/chat/completions</code> (OpenAI-compatible)</div>
+<div class="seq-step">Si échec → fallback <code>POST /completion</code> (llama.cpp natif)</div>
+<div class="seq-step">Passe la réponse brute à <code>utils.json_extract.extract_json()</code></div>
+<div class="seq-step">Retourne le dict parsé, ou <code>None</code> + log erreur</div>
+</div>
+<div class="arrow-box"><b>Appelé par</b> <code>pipeline.py</code> et tous les modules <code>pipeline_core/*.py</code> (~30-50 fois par ville)</div>
+</div>
+
+<div class="card">
+<h2>routes.py <span class="file">server/server_ui/routes.py</span></h2>
+<div class="fn">
+<div class="fn-name">h_status(req) → GET /api/status</div>
+<div class="fn-sig">Appelé par le browser toutes les 3 secondes</div>
+<div class="fn-io">
+<div class="fn-in"><b>LIT:</b><code>get_gpu_info(), get_system_info()<br>app_state.* (model, scan, progress, vram_history)<br>find_llama_server()</code></div>
+<div class="fn-out"><b>RETOURNE:</b><code>{"model":{...}, "gpu":{...}, "system":{...},<br>"scan":{"running":true,"progress":{...}},<br>"vram_history":[...], "resolution_status":{...}}</code></div>
+</div>
+</div>
+<div class="fn">
+<div class="fn-name">h_start_model(req) → POST /api/model/start</div>
+<div class="fn-io">
+<div class="fn-in"><b>REÇOIT du browser:</b><code>{"model":"mistral3_q4",<br>"model_path":"C:\\...\\model.gguf",<br>"gpu_layers":35, "ctx_size":4096}</code></div>
+<div class="fn-out"><b>APPELLE:</b> <code>start_llama(mk, mp, ngl, ctx, lp)</code><br><b>RETOURNE:</b> <code>{"status":"ok"}</code> ou <code>{"error":"..."}</code></div>
+</div>
+</div>
+<div class="fn">
+<div class="fn-name">h_start_scan(req) → POST /api/scan/start</div>
+<div class="fn-io">
+<div class="fn-in"><b>VÉRIFIE:</b><code>app_state.is_running == True<br>app_state.scan_running == False</code></div>
+<div class="fn-out"><b>LANCE:</b> <code>asyncio.create_task(run_full_scan())</code><br>Retourne immédiatement <code>{"status":"ok"}</code></div>
+</div>
+</div>
+<div class="arrow-box"><b>Flux browser:</b> index.html → <code>fetch('/api/status')</code> toutes les 3s → met à jour UI (VRAM, progress, résultats)</div>
+</div>
+</body>
+</html>
