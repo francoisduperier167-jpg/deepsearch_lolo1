@@ -1,0 +1,1625 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>YouTube Scout v2 — Flowchart Chronologique</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;700&family=DM+Sans:wght@400;500;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden}
+body{background:#0a0a0a;color:#e8e8ec;font-family:'DM Sans',sans-serif}
+
+/* Toolbar */
+.tb{position:fixed;top:0;left:0;right:0;height:44px;background:#0e0e12;border-bottom:1px solid #1a1a22;display:flex;align-items:center;padding:0 14px;gap:10px;z-index:300}
+.tb-t{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:2px;color:#ffe036}
+.sep{width:1px;height:22px;background:#222}
+.tbtn{padding:5px 10px;border-radius:5px;border:1px solid #222;background:#111;color:#777;cursor:pointer;font-size:10px;font-family:'JetBrains Mono',monospace;transition:.15s}
+.tbtn:hover{border-color:#ffe036;color:#ffe036}
+.zl{font-family:'JetBrains Mono',monospace;font-size:10px;color:#555;min-width:44px;text-align:center}
+.si{background:#0a0a0a;border:1px solid #222;color:#fff;padding:4px 8px;border-radius:4px;font-size:10px;width:150px;font-family:inherit}
+.si:focus{border-color:#ffe036;outline:none}
+
+/* Canvas */
+.cw{position:fixed;top:44px;left:0;right:0;bottom:0;overflow:hidden;cursor:grab}
+.cw.drag{cursor:grabbing}
+.cv{position:absolute;transform-origin:0 0}
+
+/* Vertical rail lines */
+.rail{position:absolute;width:2px;pointer-events:none;border-radius:1px}
+
+/* Nodes */
+.nd{position:absolute;border-radius:5px;user-select:none;cursor:pointer;transition:box-shadow .2s,filter .15s}
+.nd:hover{filter:brightness(1.15);z-index:10}
+.nd-in{padding:8px 12px;position:relative}
+.nd-id{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:400;opacity:.45;margin-bottom:1px}
+.nd-t{font-weight:700;font-size:11px;line-height:1.25}
+.nd-s{font-size:9px;opacity:.5;margin-top:2px;line-height:1.2}
+.nd-exp{position:absolute;top:6px;right:6px;width:16px;height:16px;border-radius:3px;background:#0004;display:flex;align-items:center;justify-content:center;font-size:7px;cursor:pointer;transition:.15s;font-family:'JetBrains Mono',monospace}
+.nd-exp:hover{background:#fff3;transform:scale(1.2)}
+
+/* Main program headers */
+.nd.M{min-width:260px;border:2px solid;border-radius:6px}
+.nd.M .nd-t{font-size:14px;letter-spacing:-0.3px}
+.nd.M .nd-id{font-size:10px}
+
+/* Step nodes */
+.nd.S{min-width:220px;max-width:280px;border:1px solid}
+
+/* Sub-step nodes */
+.nd.U{min-width:200px;max-width:260px;border:1px dashed;opacity:.9}
+.nd.U .nd-t{font-size:10px;font-weight:500}
+
+/* Condition labels */
+.clab{position:absolute;font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;padding:2px 6px;border-radius:3px;pointer-events:none;z-index:20;white-space:nowrap}
+
+/* SVG */
+.arrsvg{position:absolute;top:0;left:0;pointer-events:none;overflow:visible}
+
+/* Legend */
+.legend{position:fixed;bottom:12px;left:12px;background:#0e0e12ee;border:1px solid #1a1a22;border-radius:6px;padding:8px 12px;z-index:200;font-size:9px;display:flex;flex-direction:column;gap:3px;backdrop-filter:blur(8px)}
+.li{display:flex;align-items:center;gap:6px}.lc{width:14px;height:4px;border-radius:2px;flex-shrink:0}
+.li span{color:#777;font-family:'JetBrains Mono',monospace}
+
+/* Minimap */
+.mm{position:fixed;bottom:12px;right:12px;width:200px;height:130px;background:#0e0e12ee;border:1px solid #1a1a22;border-radius:6px;z-index:200;overflow:hidden;cursor:crosshair;backdrop-filter:blur(8px)}
+.mm canvas{width:100%;height:100%}
+.mmv{position:absolute;border:1.5px solid #ffe036;pointer-events:none;border-radius:1px}
+
+/* Detail panel */
+.dp{position:fixed;top:44px;right:-400px;width:400px;bottom:0;background:#0e0e12;border-left:1px solid #1a1a22;z-index:290;transition:right .25s;display:flex;flex-direction:column;overflow:hidden}
+.dp.open{right:0}
+.dp-head{padding:14px 16px 10px;border-bottom:1px solid #1a1a22;flex-shrink:0}
+.dp-close{position:absolute;top:12px;right:14px;background:none;border:none;color:#555;cursor:pointer;font-size:18px}.dp-close:hover{color:#fff}
+.dp-id{font-family:'JetBrains Mono',monospace;font-size:10px;opacity:.35;margin-bottom:3px}
+.dp-title{font-size:16px;font-weight:700;line-height:1.3}
+.dp-file{font-family:'JetBrains Mono',monospace;font-size:10px;color:#555;margin-top:5px}
+.dp-body{padding:16px;overflow-y:auto;flex:1}
+.dp-section{margin-bottom:16px}
+.dp-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#555;margin-bottom:5px}
+.dp-text{font-size:12px;line-height:1.6;color:#bbb}
+.dp-text b{color:#eee}
+.dp-code{font-family:'JetBrains Mono',monospace;font-size:10px;background:#08080c;border:1px solid #1a1a22;border-radius:4px;padding:8px 10px;margin-top:6px;color:#999;line-height:1.5;white-space:pre-wrap}
+.dp-io{display:flex;gap:8px;margin-top:6px}
+.dp-io div{flex:1;background:#08080c;border:1px solid #1a1a22;border-radius:4px;padding:6px 8px;font-size:10px;line-height:1.4}
+.dp-io div b{display:block;font-size:9px;color:#555;text-transform:uppercase;margin-bottom:3px}
+.dp-nav{cursor:pointer;display:block;padding:2px 0;transition:.1s;font-size:11px}
+.dp-nav:hover{padding-left:5px}
+
+/* ── Flow Overlay Modal ── */
+.flow-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:#0a0a0fea;z-index:400;display:none;overflow:hidden}
+.flow-overlay.open{display:flex}
+.flow-left{flex:1;overflow-y:auto;padding:0}
+.flow-right{width:420px;flex-shrink:0;background:#0d0d14;border-left:2px solid #1a1a2a;overflow-y:auto;padding:22px}
+.flow-topbar{display:flex;align-items:center;gap:12px;padding:12px 20px;background:#0d0d14;border-bottom:1px solid #1a1a2a;position:sticky;top:0;z-index:10}
+.flow-topbar h2{font-size:15px;font-weight:900}
+.flow-topbar .ft-close{margin-left:auto;width:32px;height:32px;border-radius:6px;border:1px solid #333;background:#1a1a22;color:#888;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:.15s}
+.flow-topbar .ft-close:hover{background:#ef4444;border-color:#ef4444;color:#fff}
+.flow-colhdrs{display:grid;grid-template-columns:1fr 1fr 1fr;position:sticky;top:50px;z-index:9}
+.flow-ch{text-align:center;padding:8px;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:2px;color:#fff}
+.fch-ui{background:#2563eb}.fch-js{background:#d97706}.fch-bk{background:#16a34a}
+.flow-sdiv{display:flex;align-items:center;gap:0;background:#12121a;border-top:3px solid #2a2a3a;border-bottom:1px solid #1a1a2a}
+.flow-sdiv-n{width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;color:#000;flex-shrink:0}
+.flow-sdiv-b{padding:10px 14px}.flow-sdiv-t{font-size:13px;font-weight:800}.flow-sdiv-d{font-size:9px;color:#606070;margin-top:1px}
+.flow-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0}
+.flow-cell{position:relative;padding:5px 8px}
+.fc-ui{background:#0c1a3a}.fc-js{background:#2a1a08}.fc-bk{background:#081a0f}
+.flow-nd{border-radius:8px;padding:9px 11px;cursor:pointer;transition:all .15s;border:1.5px solid transparent}
+.flow-nd:hover{transform:translateY(-1px)}
+.flow-nd.active{z-index:5}
+.fnd-ui{background:#0f2050;border-color:#1e3a6e}.fnd-ui:hover,.fnd-ui.active{border-color:#2563eb;box-shadow:0 0 16px #2563eb30}
+.fnd-js{background:#2a1c0a;border-color:#5c3a12}.fnd-js:hover,.fnd-js.active{border-color:#d97706;box-shadow:0 0 16px #d9770630}
+.fnd-bk{background:#0a2015;border-color:#1a4a2a}.fnd-bk:hover,.fnd-bk.active{border-color:#16a34a;box-shadow:0 0 16px #16a34a30}
+.fnd-err{background:#1a0808;border-color:#5c1a1a}.fnd-err:hover,.fnd-err.active{border-color:#ef4444;box-shadow:0 0 16px #ef444430}
+.fnd-ok{background:#081a0f;border-color:#1a4a2a}.fnd-file{background:#0a1a1a;border-color:#1a3a3a}
+.fnd-top{display:flex;align-items:center;gap:7px}
+.fnd-ico{font-size:14px}.fnd-nm{font-size:10px;font-weight:700}.fnd-sub{font-family:'JetBrains Mono',monospace;font-size:8px;color:#55556a;margin-top:1px}
+.fnd-vrs{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px}
+.fnd-vr{font-family:'JetBrains Mono',monospace;font-size:7px;padding:2px 5px;border-radius:3px}
+.fvr-out{background:#22d3ee10;color:#22d3ee;border:1px solid #22d3ee20}
+.fvr-in{background:#f472b610;color:#f472b6;border:1px solid #f472b620}
+.fvr-err{background:#ef444410;color:#ef4444;border:1px solid #ef444420}
+.flow-conn{display:grid;grid-template-columns:1fr 1fr 1fr;height:26px}
+.flow-conn .flow-cell svg{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible}
+.fp-h2{font-size:14px;font-weight:800;margin-bottom:2px}
+.fp-pt{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:1px;padding:2px 8px;border-radius:3px;display:inline-block;margin-bottom:12px}
+.fpt-ui{background:#1a3060;color:#2563eb}.fpt-js{background:#3a2810;color:#d97706}.fpt-bk{background:#103020;color:#16a34a}.fpt-file{background:#0a2020;color:#22d3ee}
+.fp-h3{font-size:8px;font-weight:700;color:#55556a;text-transform:uppercase;letter-spacing:.5px;margin:14px 0 5px;padding-top:10px;border-top:1px solid #1a1a2a}
+.fp-h3:first-of-type{border:none;padding:0;margin-top:8px}
+.fp-p{font-size:11px;color:#8888a0;line-height:1.6;margin-bottom:5px}
+.fp-code{font-family:'JetBrains Mono',monospace;font-size:9px;background:#060609;border:1px solid #1a1a2a;border-radius:6px;padding:10px 12px;margin:5px 0 7px;line-height:1.6;color:#7788a0;white-space:pre-wrap}
+.fp-code .hl{color:#22d3ee}.fp-code .cm{color:#3d4a5c}.fp-code .er{color:#ef4444;font-weight:700}.fp-code .ok{color:#16a34a}
+.fp-dt{display:flex;align-items:baseline;gap:5px;padding:3px 8px;background:#0a0a14;border:1px solid #1a1a2a;border-radius:4px;margin:2px 0;font-size:9px}
+.fp-dt-k{font-weight:700;color:#55556a;min-width:75px;flex-shrink:0;font-family:'JetBrains Mono',monospace}
+.fp-dt-v{font-family:'JetBrains Mono',monospace;color:#22d3ee;word-break:break-all}.fp-dt-v.bad{color:#ef4444}
+.fp-bug{background:#1a08080a;border:1.5px solid #5c1a1a;border-radius:6px;padding:9px 11px;margin:7px 0;font-size:10px;color:#8888a0;line-height:1.5}.fp-bug b{color:#ef4444}
+.fp-fix{background:#081a0f;border:1.5px solid #1a4a2a;border-radius:6px;padding:9px 11px;margin:7px 0;font-size:10px;color:#8888a0;line-height:1.5}.fp-fix b{color:#16a34a}
+.fp-empty{color:#55556a;font-size:11px;text-align:center;padding:50px 16px;line-height:1.6}
+.fp-eli5{background:#f59e0b12;border:1.5px solid #f59e0b35;border-radius:8px;padding:12px 14px;margin:12px 0 6px;position:relative}
+.fp-eli5::before{content:'💡 En simple';display:block;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#f59e0b;margin-bottom:6px}
+.fp-eli5 p{font-size:11.5px;color:#d4c090;line-height:1.65;margin:0}
+.fp-eli{background:#2a2510;border:1.5px solid #5c4a1a;border-radius:7px;padding:12px 14px;margin:12px 0 8px;font-size:11px;color:#d4c48a;line-height:1.65}
+.fp-eli b{color:#f5d660}
+.fp-eli-h{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#a08c40;margin-bottom:6px;display:flex;align-items:center;gap:5px}
+
+</style>
+</head>
+<body>
+
+<div class="tb">
+  <span class="tb-t">YT SCOUT v2 — FLOWCHART</span><div class="sep"></div>
+  <button class="tbtn" onclick="zoomTo(.1)">Global</button>
+  <button class="tbtn" onclick="zoomTo(.25)">×.25</button>
+  <button class="tbtn" onclick="zoomTo(.5)">×.5</button>
+  <button class="tbtn" onclick="zoomTo(1)">×1</button>
+  <button class="tbtn" onclick="fitAll()">Fit</button>
+  <span class="zl" id="zl">25%</span><div class="sep"></div>
+  <button class="tbtn" onclick="expandAll()">▼ Déplier tout</button>
+  <button class="tbtn" onclick="collapseAll()">▶ Replier tout</button>
+  <div class="sep"></div>
+  <input class="si" id="si" placeholder="🔍 Rechercher..." oninput="doSearch(this.value)">
+  <span class="zl" id="info"></span>
+</div>
+
+<div class="cw" id="cw">
+  <div class="cv" id="cv">
+    <svg class="arrsvg" id="svg" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="ah" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#ffe036"/></marker>
+        <marker id="aho" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#ff6b35"/></marker>
+        <marker id="ahc" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#00bcd4"/></marker>
+        <marker id="ahp" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#ab47bc"/></marker>
+        <marker id="ahr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#ef5350"/></marker>
+        <marker id="ahv" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#7e57c2"/></marker>
+        <marker id="ahg" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#66bb6a"/></marker>
+        <marker id="aht" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#26a69a"/></marker>
+        <marker id="ahw" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#ffa726"/></marker>
+        <marker id="ahb" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#42a5f5"/></marker>
+        <marker id="ahbr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#8d6e63"/></marker>
+      </defs>
+    </svg>
+  </div>
+</div>
+
+<div class="legend" id="leg"></div>
+<div class="mm" id="mm"><canvas id="mc" width="400" height="260"></canvas><div class="mmv" id="mv"></div></div>
+
+<div class="dp" id="dp">
+  <div class="dp-head">
+    <button class="dp-close" onclick="closeDetail()">✕</button>
+    <div class="dp-id" id="dpId"></div>
+    <div class="dp-title" id="dpTitle"></div>
+    <div class="dp-file" id="dpFile"></div>
+  </div>
+  <div class="dp-body" id="dpBody"></div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════
+// PROGRAMS — each gets a column index. The column index determines X.
+// A program starts at the Y position where it's called.
+// ═══════════════════════════════════════════════════════════════════════
+const PROG = {
+  "000": { col: 0, color: "#ffe036", label: "START.BAT",         textDark: true,  marker: "ah" },
+  "001": { col: 1, color: "#ff6b35", label: "MAIN.PY",           textDark: false, marker: "aho" },
+  "002": { col: 2, color: "#00bcd4", label: "SERVER.PY",         textDark: true,  marker: "ahc" },
+  "003": { col: 3, color: "#ab47bc", label: "INDEX.HTML",        textDark: false, marker: "ahp" },
+  "004": { col: 4, color: "#ef5350", label: "LLAMA MANAGER",     textDark: false, marker: "ahr" },
+  "005": { col: 5, color: "#7e57c2", label: "STRATEGY PLANNER",  textDark: false, marker: "ahv" },
+  "006": { col: 6, color: "#66bb6a", label: "PIPELINE SCAN",     textDark: true,  marker: "ahg" },
+  "007": { col: 7, color: "#26a69a", label: "PIPELINE STATE/CITY",textDark: false, marker: "aht" },
+  "008": { col: 8, color: "#ffa726", label: "PIPELINE WAVE",     textDark: true,  marker: "ahw" },
+  "009": { col: 9, color: "#42a5f5", label: "WEB / VERIFY",      textDark: false, marker: "ahb" },
+  "010": { col: 10,color: "#8d6e63", label: "SAVE & EXPORT",     textDark: false, marker: "ahbr" },
+};
+
+const COL_W = 270;
+const COL_GAP = 40;
+const ROW_H = 58;
+const SUB_ROW_H = 48;
+const MAIN_ROW_H = 64;
+const V_GAP = 12;
+
+function colX(c) { return c * (COL_W + COL_GAP) + 30; }
+
+// ═══════════════════════════════════════════════════════════════════════
+// DATA: Ordered sequence of "rows"
+// Each row is placed in order. A sub-process row is indented into the
+// next column, and it appears BETWEEN its parent step and the next step.
+// A "main" row starts a new program column.
+//
+// Format: { id, prog, type, title, short, detail, file, input, output, code, children[] }
+// type: "main" = program header, "step" = process step, "sub" = subprocess
+// children are revealed when parent is expanded (sub-steps in col+1)
+// ═══════════════════════════════════════════════════════════════════════
+
+const ROWS = [];
+const NODES = {};
+const ARROWS = [];
+
+function addMain(id, prog, title, short, detail, file, input, output) {
+  const n = { id, prog, type: "main", title, short: short||"", detail: detail||"", file: file||"", input: input||"", output: output||"", code: "", children: [], _exp: false, _vis: true, _x:0, _y:0 };
+  ROWS.push(n); NODES[id] = n; return n;
+}
+function addStep(id, prog, title, short, detail, file, input, output, code, children) {
+  const kids = (children||[]).map(c => {
+    c._vis = false; c._exp = false; c._x = 0; c._y = 0; c.children = c.children || [];
+    NODES[c.id] = c; return c;
+  });
+  const n = { id, prog, type: "step", title, short: short||"", detail: detail||"", file: file||"", input: input||"", output: output||"", code: code||"", children: kids, _exp: false, _vis: true, _x:0, _y:0 };
+  ROWS.push(n); NODES[id] = n; return n;
+}
+function sub(id, prog, title, short, detail) {
+  return { id, prog, type: "sub", title, short: short||"", detail: detail||"", file: "", input: "", output: "", code: "", children: [], _exp: false, _vis: false, _x:0, _y:0 };
+}
+function ar(from, to, type, cond) { ARROWS.push({ from, to, type: type||"down", cond: cond||"" }); }
+
+// ═══════════════════════════════════════════════════════════════════════
+// BUILDING THE FULL FLOWCHART — Chronological top to bottom
+// ═══════════════════════════════════════════════════════════════════════
+
+// ── 000: START.BAT ── (col 0)
+addMain("000", "000", "ETAPE 000 : START.BAT", "Lanceur Windows — 5 vérifications + lancement",
+  "<b>START.bat</b> est le point d'entrée unique sous Windows.<br><br>" +
+  "<b>Rôle :</b> Préparer l'environnement complet (Python, venv, dépendances, Playwright, llama-server) puis lancer le serveur Python.<br><br>" +
+  "<b>Séquence complète :</b><br>" +
+  "① <b>[1/5] Python</b> — Vérifie que Python 3.10+ est dans le PATH<br>" +
+  "② <b>[2/5] VENV</b> — Vérifie ou crée l'environnement virtuel<br>" +
+  "③ <b>[3/5] Activation</b> — Active le venv (call activate.bat)<br>" +
+  "④ <b>[4/5] Dépendances</b> — pip install requirements.txt + vérification imports<br>" +
+  "⑤ <b>[4b/5] Playwright</b> — Installe Playwright + Firefox headless<br>" +
+  "⑥ <b>[5/5] llama-server</b> — Détecte l'exécutable dans le PATH<br>" +
+  "⑦ <b>Structure</b> — Vérifie que server/server.py existe<br>" +
+  "⑧ <b>Lancement</b> — python main.py + ouvre le navigateur après 3s<br><br>" +
+  "<b>Variables d'environnement :</b><br>" +
+  "• <code>SD</code> = répertoire du script (%~dp0)<br>" +
+  "• <code>PYTHONPATH</code> = même répertoire (pour les imports)<br><br>" +
+  "<b>En cas d'erreur critique</b> (Python absent, venv impossible, dépendances manquantes, structure incomplète) → <code>pause + exit /b 1</code>.<br>" +
+  "<b>En cas d'erreur non-critique</b> (Playwright absent, llama-server absent) → message d'avertissement, le programme continue.",
+  "START.bat", "Double-clic utilisateur", "Serveur lancé sur http://localhost:8080");
+
+addStep("000.01", "000", "Verifier Python", "[1/5] python --version",
+  "<b>But :</b> Vérifier que Python 3.10+ est installé et accessible dans le PATH système.<br><br>" +
+  "<b>Comment :</b><br>" +
+  "1. Exécute <code>python --version >nul 2>&1</code><br>" +
+  "2. Teste le <code>errorlevel</code> retourné<br>" +
+  "3. Si <code>errorlevel != 0</code> → Python absent → branche vers <b>000.012</b> (exit)<br>" +
+  "4. Si OK → extrait la version avec <code>for /f \"tokens=2\" %%v in ('python --version')</code><br>" +
+  "5. Affiche <code>Python 3.x.x</code> et continue<br><br>" +
+  "<b>Pourquoi 3.10+ :</b> Le projet utilise des features Python 3.10 (match/case, union types, etc.).<br><br>" +
+  "<b>Piège courant :</b> Sur Windows, <code>python</code> peut ouvrir le Microsoft Store si Python n'est pas installé. Le test <code>>nul 2>&1</code> capture ce cas.",
+  "START.bat:L18-25", "PATH système", "Version Python (ex: 3.12.3)",
+  'python --version >nul 2>&1\nif !errorlevel! neq 0 (\n    echo [ERREUR] Python non trouve\n    pause\n    exit /b 1\n)\nfor /f "tokens=2" %%v in (\'python --version 2^>^&1\') do echo Python %%v', [
+  sub("000.012", "000", "⛔ Python absent → Exit",
+    "Affiche message d'erreur + pause + exit /b 1",
+    "<b>Déclencheur :</b> <code>errorlevel != 0</code> après <code>python --version</code><br><br>" +
+    "<b>Actions :</b><br>" +
+    "1. Affiche : <i>\"[ERREUR] Python non trouve dans le PATH.\"</i><br>" +
+    "2. Affiche : <i>\"Installez Python 3.10+ depuis python.org et cochez Add to PATH\"</i><br>" +
+    "3. <code>pause</code> — attend que l'utilisateur appuie sur une touche<br>" +
+    "4. <code>exit /b 1</code> — arrête le script avec code d'erreur 1<br><br>" +
+    "<b>Résolution :</b> Installer Python depuis <a>python.org</a>, cocher <i>\"Add Python to PATH\"</i> pendant l'installation."),
+]);
+
+addStep("000.02", "000", "Verifier / Creer VENV", "[2/5] venv/ existe ?",
+  "<b>But :</b> S'assurer qu'un environnement virtuel Python existe pour isoler les dépendances du projet.<br><br>" +
+  "<b>Comment :</b><br>" +
+  "1. Teste si <code>%SD%venv\\Scripts\\activate.bat</code> existe<br>" +
+  "2. Si le fichier existe → affiche <i>\"OK existant\"</i> → passe à 000.03<br>" +
+  "3. Si absent → branche vers <b>000.022</b> (création)<br><br>" +
+  "<b>Pourquoi un venv :</b> Isole les packages Python du système. Évite les conflits de versions entre projets. Permet un <code>pip install</code> sans droits admin.<br><br>" +
+  "<b>Note :</b> Le test porte spécifiquement sur <code>activate.bat</code> (pas juste le dossier venv/) pour s'assurer que le venv est complet et fonctionnel.",
+  "START.bat:L28-36", "Dossier du projet", "venv/ prêt avec activate.bat",
+  'if not exist "%SD%venv\\Scripts\\activate.bat" (\n    echo Creation du venv...\n    python -m venv "%SD%venv"\n    if !errorlevel! neq 0 (\n        echo [ERREUR] Echec creation venv\n        pause\n        exit /b 1\n    )\n)', [
+  sub("000.022", "000", "Creer VENV", "python -m venv venv",
+    "<b>Déclencheur :</b> <code>activate.bat</code> absent dans <code>venv/Scripts/</code><br><br>" +
+    "<b>Actions :</b><br>" +
+    "1. Affiche : <i>\"Creation du venv...\"</i><br>" +
+    "2. Exécute : <code>python -m venv \"%SD%venv\"</code><br>" +
+    "3. Vérifie le <code>errorlevel</code><br>" +
+    "4. Si échec → <code>pause + exit /b 1</code><br>" +
+    "5. Si OK → affiche <i>\"OK cree\"</i> → continue vers 000.03<br><br>" +
+    "<b>Crée la structure :</b><br>" +
+    "• <code>venv/Scripts/activate.bat</code> (Windows)<br>" +
+    "• <code>venv/Scripts/python.exe</code><br>" +
+    "• <code>venv/Scripts/pip.exe</code><br>" +
+    "• <code>venv/Lib/site-packages/</code>"),
+]);
+
+addStep("000.03", "000", "Activer VENV", "[3/5] call activate.bat",
+  "<b>But :</b> Activer l'environnement virtuel pour que toutes les commandes <code>pip</code> et <code>python</code> suivantes utilisent le venv.<br><br>" +
+  "<b>Comment :</b><br>" +
+  "1. Exécute : <code>call \"%SD%venv\\Scripts\\activate.bat\"</code><br>" +
+  "2. Pas de vérification d'erreur (activate.bat ne retourne pas d'errorlevel fiable)<br><br>" +
+  "<b>Effet :</b><br>" +
+  "• <code>python</code> pointe désormais vers <code>venv/Scripts/python.exe</code><br>" +
+  "• <code>pip</code> installe dans <code>venv/Lib/site-packages/</code><br>" +
+  "• Le prompt affiche <code>(venv)</code> en préfixe<br><br>" +
+  "<b>Mot-clé <code>call</code> :</b> Obligatoire en batch. Sans <code>call</code>, le script s'arrêterait après activate.bat au lieu de continuer.",
+  "START.bat:L39", "venv/ existant", "Environnement activé",
+  'call "%SD%venv\\Scripts\\activate.bat"');
+
+addStep("000.04", "000", "Installer dependances", "[4/5] pip install -r requirements.txt",
+  "<b>But :</b> Installer les 3 dépendances Python du projet et vérifier qu'elles sont importables.<br><br>" +
+  "<b>Séquence :</b><br>" +
+  "1. <code>python -m pip install --upgrade pip -q</code> — met à jour pip silencieusement<br>" +
+  "2. <code>pip install -r requirements.txt -q</code> — installe depuis le fichier<br>" +
+  "3. <code>python -c \"import aiohttp; import psutil\"</code> — teste que les imports marchent<br>" +
+  "4. Si l'import échoue → branche vers <b>000.042</b> (install individuelle)<br><br>" +
+  "<b>Fichier requirements.txt :</b><br>" +
+  "<code>aiohttp>=3.9.0</code> — serveur web async<br>" +
+  "<code>psutil>=5.9.0</code> — monitoring système (RAM, GPU, CPU)<br>" +
+  "<code>playwright>=1.40.0</code> — browser automation (séparé à l'étape 000.05)<br><br>" +
+  "<b>Flags :</b> <code>-q</code> = silencieux (pas de barre de progression), <code>2>nul</code> = supprime les warnings.",
+  "START.bat:L43-58", "requirements.txt + venv activé", "aiohttp + psutil importables",
+  'python -m pip install --upgrade pip -q >nul 2>&1\npip install -r "%SD%requirements.txt" -q 2>nul\npython -c "import aiohttp; import psutil" >nul 2>&1\nif !errorlevel! neq 0 (\n    pip install aiohttp -q\n    pip install psutil -q\n)', [
+  sub("000.042", "000", "Install manuelle (fallback)", "pip install aiohttp psutil",
+    "<b>Déclencheur :</b> <code>import aiohttp; import psutil</code> échoue après pip install -r<br><br>" +
+    "<b>Actions :</b><br>" +
+    "1. Affiche : <i>\"Installation individuelle...\"</i><br>" +
+    "2. <code>pip install aiohttp -q</code><br>" +
+    "3. <code>pip install psutil -q</code><br>" +
+    "4. Re-teste : <code>python -c \"import aiohttp; import psutil\"</code><br>" +
+    "5. Si encore en échec → <code>pause + exit /b 1</code><br><br>" +
+    "<b>Causes possibles :</b><br>" +
+    "• requirements.txt corrompu ou absent<br>" +
+    "• Conflit de versions<br>" +
+    "• Problème réseau lors du pip install<br>" +
+    "• Compilateur C manquant (certains packages nécessitent une compilation)"),
+]);
+
+addStep("000.05", "000", "Installer Playwright", "[4b/5] playwright + Firefox headless",
+  "<b>But :</b> Installer le framework Playwright et télécharger le navigateur Firefox en mode headless pour le web scraping stealth.<br><br>" +
+  "<b>Séquence :</b><br>" +
+  "1. <code>python -c \"import playwright\"</code> — teste si le module existe<br>" +
+  "2. Si absent → <code>pip install playwright -q</code><br>" +
+  "3. Re-teste l'import<br>" +
+  "4. Si OK → teste Firefox : lance un browser headless temporaire<br>" +
+  "5. Si Firefox absent → <code>python -m playwright install firefox</code> (télécharge ~80 MB)<br>" +
+  "6. Si échec → branche vers <b>000.052</b> (warning, pas bloquant)<br><br>" +
+  "<b>Test Firefox :</b><br>" +
+  "<code>from playwright.sync_api import sync_playwright</code><br>" +
+  "<code>p = sync_playwright().start()</code><br>" +
+  "<code>b = p.firefox.launch(headless=True)</code><br>" +
+  "<code>b.close(); p.stop()</code><br><br>" +
+  "<b>Pourquoi Firefox :</b> Plus difficile à détecter comme bot que Chromium. Meilleur support des anti-fingerprint.<br><br>" +
+  "<b>⚠ Non-bloquant :</b> Si Playwright/Firefox échoue, le programme continue avec le fallback HTTP (brave_search_paginated), mais risque de CAPTCHA/403.",
+  "START.bat:L61-82", "pip + venv activé", "Firefox headless prêt ou fallback HTTP",
+  'python -c "import playwright" >nul 2>&1\nif !errorlevel! neq 0 (\n    pip install playwright -q\n)\n:: Test Firefox\npython -c "from playwright.sync_api import sync_playwright; ..."\nif !errorlevel! neq 0 (\n    python -m playwright install firefox\n)', [
+  sub("000.052", "000", "⚠ Firefox absent → Fallback HTTP", "Le programme continuera sans navigateur",
+    "<b>Déclencheur :</b> Playwright non installable OU Firefox non téléchargeable<br><br>" +
+    "<b>Conséquences :</b><br>" +
+    "• Le StealthBrowser ne sera pas disponible<br>" +
+    "• Le pipeline utilisera <code>brave_search_paginated()</code> en HTTP direct<br>" +
+    "• Risque accru de CAPTCHA et de blocage 403/429<br>" +
+    "• Les fonctions anti-détection (random UA, viewport, human typing) ne seront pas actives<br><br>" +
+    "<b>Messages affichés :</b><br>" +
+    "<i>\"[ATTENTION] Playwright non installe\"</i><br>" +
+    "<i>\"Executez manuellement: pip install playwright\"</i><br>" +
+    "<i>\"Puis: python -m playwright install firefox\"</i><br><br>" +
+    "<b>Le script continue</b> — ce n'est pas un exit."),
+]);
+
+addStep("000.06", "000", "Detecter llama-server", "[5/5] where llama-server.exe",
+  "<b>But :</b> Vérifier si l'exécutable <code>llama-server</code> (llama.cpp) est accessible sur la machine.<br><br>" +
+  "<b>Comment :</b><br>" +
+  "1. <code>where llama-server.exe >nul 2>&1</code> — cherche dans le PATH Windows<br>" +
+  "2. Si trouvé → affiche <i>\"Detecte dans PATH\"</i><br>" +
+  "3. Si absent → affiche <i>\"[INFO] Non trouve — specifiez le chemin dans l'interface\"</i><br><br>" +
+  "<b>⚠ Non-bloquant :</b> llama-server n'est pas nécessaire au démarrage. L'utilisateur peut spécifier le chemin plus tard via l'interface web (onglet Config).<br><br>" +
+  "<b>llama-server :</b> C'est le serveur HTTP de llama.cpp qui expose une API compatible OpenAI pour l'inférence LLM locale. Le projet l'utilise pour tous les appels LLM (triage, extraction, assembly, vérification...).<br><br>" +
+  "<b>Chemins supplémentaires :</b> Le module <code>llama_manager.py</code> cherche aussi dans :<br>" +
+  "• <code>%USERPROFILE%\\llama.cpp\\build\\bin\\Release\\</code><br>" +
+  "• <code>%USERPROFILE%\\llama.cpp\\build\\bin\\</code><br>" +
+  "• Dossier du projet (<code>BASE_DIR/llama-server.exe</code>)",
+  "START.bat:L85-93", "PATH système", "Chemin llama-server ou info 'non trouvé'",
+  'where llama-server.exe >nul 2>&1\nif !errorlevel! equ 0 (\n    set "LLAMA_FOUND=1"\n    echo Detecte dans PATH.\n) else (\n    echo [INFO] Non trouve - specifiez le chemin dans l interface.\n)');
+addStep("000.07", "000", "Verifier structure", "server/server.py existe ?",
+  "<b>But :</b> Vérifier que le projet est complet en testant la présence du fichier principal du serveur.<br><br>" +
+  "<b>Comment :</b><br>" +
+  "1. <code>if not exist \"%SD%server\\server.py\"</code><br>" +
+  "2. Si absent → erreur critique → <code>pause + exit /b 1</code><br>" +
+  "3. Si présent → continue vers le lancement<br><br>" +
+  "<b>Pourquoi server/server.py :</b> C'est le fichier central importé par main.py. S'il manque, rien ne peut fonctionner. C'est aussi un bon indicateur que le dossier du projet est complet.<br><br>" +
+  "<b>Message d'erreur :</b><br>" +
+  "<i>\"[ERREUR] Structure incomplete: server\\server.py manquant\"</i><br>" +
+  "<i>\"Verifiez que tous les dossiers sont presents.\"</i><br><br>" +
+  "<b>Structure attendue :</b><br>" +
+  "• <code>main.py</code>, <code>START.bat</code>, <code>requirements.txt</code><br>" +
+  "• <code>config/</code> (settings.py, cities.py)<br>" +
+  "• <code>server/</code> (server.py, server_core/, server_ui/)<br>" +
+  "• <code>pipeline/</code> (pipeline.py, pipeline_core/)<br>" +
+  "• <code>web_search/</code>, <code>prompts/</code>, <code>utils/</code>, <code>models/</code>",
+  "START.bat:L96", "Dossier du projet", "Structure validée",
+  'if not exist "%SD%server\\server.py" (\n    echo [ERREUR] Structure incomplete\n    pause\n    exit /b 1\n)');
+addStep("000.08", "000", "Lancer main.py", "python main.py + ouvre navigateur",
+  "<b>But :</b> Lancer le serveur Python et ouvrir l'interface dans le navigateur par défaut.<br><br>" +
+  "<b>Séquence :</b><br>" +
+  "1. Affiche la bannière : <i>\"Serveur: http://localhost:8080\"</i><br>" +
+  "2. Change le titre de la fenêtre : <code>title YouTube Scout v2 - http://localhost:8080</code><br>" +
+  "3. Lance en parallèle : <code>start \"\" cmd /c \"timeout /t 3 /nobreak >nul & start http://localhost:8080\"</code><br>" +
+  "   → Attend 3 secondes puis ouvre le navigateur<br>" +
+  "4. Lance le serveur : <code>python \"%SD%main.py\"</code><br>" +
+  "   → Cette commande est <b>bloquante</b> tant que le serveur tourne<br>" +
+  "5. Quand le serveur s'arrête (Ctrl+C) → affiche <i>\"Serveur arrete.\"</i> → <code>pause</code><br><br>" +
+  "<b>PYTHONPATH :</b> Déjà défini en début de script (<code>set PYTHONPATH=%SD%</code>) pour que les imports relatifs fonctionnent.<br><br>" +
+  "<b>Astuce du timeout :</b> Le <code>start \"\" cmd /c</code> lance une sous-fenêtre invisible qui attend 3s (le temps que le serveur démarre) avant d'ouvrir le navigateur. Sans ce délai, le navigateur s'ouvrirait avant que le serveur soit prêt.<br><br>" +
+  "<b>→ Transfert vers ETAPE 001 :</b> <code>python main.py</code> exécute le fichier <code>main.py</code> qui importe <code>server.server.create_app</code> et lance <code>web.run_app()</code>.",
+  "START.bat:L109", "Toutes vérifications passées", "Serveur HTTP actif sur :8080",
+  'start "" cmd /c "timeout /t 3 /nobreak >nul & start http://localhost:8080"\npython "%SD%main.py"\necho Serveur arrete.\npause');
+
+// Arrows for 000
+ar("000","000.01"); 
+ar("000.01","000.012","right","IF NOT"); ar("000.012","000.02","return","THEN");
+ar("000.01","000.02");
+ar("000.02","000.022","right","IF NOT"); ar("000.022","000.03","return","THEN");
+ar("000.02","000.03");
+ar("000.03","000.04");
+ar("000.04","000.042","right","IF NOT"); ar("000.042","000.05","return","THEN");
+ar("000.04","000.05");
+ar("000.05","000.052","right","IF NOT"); ar("000.052","000.06","return","THEN");
+ar("000.05","000.06");
+ar("000.06","000.07"); ar("000.07","000.08");
+
+// ── 001: MAIN.PY ── (col 1, starts where 000.08 calls it)
+ar("000.08","001","call","LANCE →");
+addMain("001", "001", "ETAPE 001 : MAIN.PY", "Point d'entrée Python — 29 lignes, zéro logique métier",
+  "<b>main.py</b> est le point d'entrée Python du projet. Il fait exactement 3 choses et ne contient aucune logique métier.<br><br>" +
+  "<b>Rôle :</b> Configurer l'OS, importer le serveur, le démarrer.<br><br>" +
+  "<b>Séquence complète :</b><br>" +
+  "① <b>Config OS</b> (lignes 7-14) — stdout/stderr en UTF-8 + asyncio Windows policy<br>" +
+  "② <b>Import</b> (ligne 16) — <code>from server.server import create_app, WEB_PORT</code><br>" +
+  "   → Cet import charge <b>toute l'arborescence</b> en mémoire (routes, state, llama_manager, etc.)<br>" +
+  "③ <b>Démarrage</b> (ligne 25) — <code>web.run_app(create_app(), host='0.0.0.0', port=8080)</code><br>" +
+  "   → Commande <b>bloquante</b> jusqu'à Ctrl+C<br><br>" +
+  "<b>Pourquoi si court :</b> Tout le code est dans <code>server/</code> et <code>pipeline/</code>. main.py est juste le lanceur. Ça permet de lancer le serveur depuis n'importe quel script/test en faisant simplement <code>from server.server import create_app</code>.<br><br>" +
+  "<b>Bannière de démarrage :</b><br>" +
+  "<code>YouTube Scout v2 — Intelligent Channel Finder</code><br>" +
+  "<code>Interface: http://localhost:8080</code><br>" +
+  "<code>Platform:  Windows 10</code>",
+  "main.py", "python main.py (depuis START.bat)", "Serveur HTTP actif sur port 8080");
+addStep("001.01", "001", "Config OS", "UTF-8 + asyncio Windows",
+  "<b>But :</b> Corriger deux problèmes spécifiques à Windows avant de démarrer quoi que ce soit.<br><br>" +
+  "<b>Problème 1 — Encoding (lignes 8-11) :</b><br>" +
+  "Sur Windows, <code>sys.stdout</code> utilise par défaut l'encoding <code>cp1252</code> (Europe occidentale) ou <code>cp850</code> (console). Les caractères Unicode (accents, emojis dans les noms de chaînes YouTube) provoqueraient des <code>UnicodeEncodeError</code>.<br>" +
+  "<b>Solution :</b> <code>sys.stdout.reconfigure(encoding='utf-8', errors='replace')</code><br>" +
+  "Le flag <code>errors='replace'</code> remplace les caractères non-encodables par <code>?</code> au lieu de crasher.<br><br>" +
+  "<b>Problème 2 — asyncio (lignes 12-14) :</b><br>" +
+  "Sur Windows + Python 3.8+, la boucle événementielle par défaut (<code>SelectorEventLoop</code>) ne supporte pas les subprocesses async. Or le projet lance <code>llama-server</code> en subprocess.<br>" +
+  "<b>Solution :</b> <code>asyncio.set_event_loop_policy(WindowsProactorEventLoopPolicy())</code><br>" +
+  "Le ProactorEventLoop supporte les pipes, les subprocesses et les I/O fichiers async.<br><br>" +
+  "<b>Sur Linux/Mac :</b> Tout ce bloc est ignoré (<code>if platform.system() == 'Windows'</code>). L'encoding est déjà UTF-8 et asyncio fonctionne nativement.",
+  "main.py:L7-14", "Environnement Python brut", "stdout UTF-8 + asyncio prêt",
+  'if platform.system() == "Windows":\n    try:\n        sys.stdout.reconfigure(encoding=\'utf-8\', errors=\'replace\')\n        sys.stderr.reconfigure(encoding=\'utf-8\', errors=\'replace\')\n    except Exception: pass\n    import asyncio\n    if sys.version_info >= (3, 8):\n        asyncio.set_event_loop_policy(\n            asyncio.WindowsProactorEventLoopPolicy())');
+addStep("001.02", "001", "Import server", "from server.server import create_app, WEB_PORT",
+  "<b>But :</b> Charger le module serveur et la constante du port.<br><br>" +
+  "<b>Ligne 16 :</b> <code>from server.server import create_app, WEB_PORT</code><br><br>" +
+  "<b>⚠ Impact de cet import :</b> Cette seule ligne déclenche le chargement en cascade de <b>tout le projet</b> en mémoire :<br>" +
+  "1. <code>server/server.py</code> → importe <code>config.settings</code> (constantes)<br>" +
+  "2. <code>server/server.py</code> → importe <code>server/server_ui/routes.py</code> (34 handlers)<br>" +
+  "3. <code>routes.py</code> → importe <code>server/server_core/state.py</code> (AppState singleton)<br>" +
+  "4. <code>routes.py</code> → importe <code>server/server_core/llama_manager.py</code><br>" +
+  "5. <code>routes.py</code> → importe <code>server/server_core/llm_client.py</code><br>" +
+  "6. <code>routes.py</code> → importe <code>pipeline/pipeline.py</code> (orchestrateur)<br>" +
+  "7. <code>pipeline.py</code> → importe tous les modules pipeline_core, web_search, prompts, etc.<br><br>" +
+  "<b>Ce qui est chargé :</b><br>" +
+  "• 34 route handlers (h_index, h_status, h_start_model, ...)<br>" +
+  "• AppState singleton (app_state) — état global en mémoire<br>" +
+  "• PipelineOrchestrator class<br>" +
+  "• GraphScorer, CostEngine, StrategyPlanner classes<br>" +
+  "• Tous les prompts LLM<br>" +
+  "• StealthBrowser, HTML parser, YouTube checker<br><br>" +
+  "<b>Ligne 17 :</b> <code>from aiohttp import web</code> — importe le framework web async.<br><br>" +
+  "<b>Erreur possible :</b> Si une dépendance manque (aiohttp, psutil, playwright), l'import échoue ici avec un <code>ModuleNotFoundError</code>.",
+  "main.py:L16-17", "Modules Python dans PYTHONPATH", "create_app function + WEB_PORT=8080",
+  'from server.server import create_app, WEB_PORT\nfrom aiohttp import web');
+addStep("001.03", "001", "Demarrer serveur", "web.run_app() — BLOQUANT",
+  "<b>But :</b> Créer l'application web et la démarrer. Cette ligne bloque jusqu'à l'arrêt du serveur.<br><br>" +
+  "<b>Ligne 25 :</b> <code>web.run_app(create_app(), host='0.0.0.0', port=WEB_PORT)</code><br><br>" +
+  "<b>Décomposition :</b><br>" +
+  "1. <code>create_app()</code> est appelé → retourne un objet <code>web.Application</code> avec 34 routes montées<br>" +
+  "2. <code>web.run_app()</code> fait :<br>" +
+  "   a. Crée un <code>asyncio.Server</code> TCP<br>" +
+  "   b. Bind sur <code>0.0.0.0:8080</code><br>" +
+  "   c. Démarre la boucle événementielle asyncio<br>" +
+  "   d. <b>Bloque ici</b> — traite les requêtes HTTP en continu<br>" +
+  "   e. Sur Ctrl+C → graceful shutdown → retour<br><br>" +
+  "<b>host='0.0.0.0' :</b> Écoute sur toutes les interfaces réseau. Accessible via :<br>" +
+  "• <code>http://localhost:8080</code> (même machine)<br>" +
+  "• <code>http://127.0.0.1:8080</code> (même machine)<br>" +
+  "• <code>http://192.168.x.x:8080</code> (réseau local)<br><br>" +
+  "<b>port=WEB_PORT :</b> Défini dans <code>config/settings.py</code> = <b>8080</b>.<br><br>" +
+  "<b>Après l'arrêt :</b> Le code revient à <code>main()</code> qui se termine. Le contrôle retourne à START.bat qui affiche <i>\"Serveur arrete.\"</i> puis <code>pause</code>.<br><br>" +
+  "<b>→ Transfert vers ETAPE 002 :</b> <code>create_app()</code> est défini dans <code>server/server.py</code>. C'est là que les 34 routes sont montées et que l'application est configurée.",
+  "main.py:L25", "create_app() function", "Serveur HTTP actif, bloquant",
+  'def main():\n    print("=" * 60)\n    print("  YouTube Scout v2 — Intelligent Channel Finder")\n    print(f"  Interface: http://localhost:{WEB_PORT}")\n    print(f"  Platform:  {platform.system()} {platform.release()}")\n    print("=" * 60)\n    web.run_app(create_app(), host="0.0.0.0", port=WEB_PORT)');
+ar("001","001.01"); ar("001.01","001.02"); ar("001.02","001.03");
+
+// ── 002: SERVER.PY ── (col 2)
+ar("001.03","002","call","LANCE →");
+addMain("002", "002", "ETAPE 002 : SERVER.PY", "App aiohttp — 36 routes, 8 groupes",
+  "<b>server/server.py</b> crée et configure l'application web aiohttp.<br><br>" +
+  "<b>Rôle :</b> Instancier <code>web.Application()</code>, monter les 36 routes API, et retourner l'app prête à être lancée par <code>web.run_app()</code>.<br><br>" +
+  "<b>Structure du module server/ :</b><br>" +
+  "• <code>server/server.py</code> — create_app() : montage des routes (ce fichier)<br>" +
+  "• <code>server/server_ui/routes.py</code> — 34 handlers async (398 lignes)<br>" +
+  "• <code>server/server_ui/index.html</code> — interface web (836 lignes, 5 onglets)<br>" +
+  "• <code>server/server_core/state.py</code> — AppState singleton (état global)<br>" +
+  "• <code>server/server_core/llama_manager.py</code> — start/stop llama-server<br>" +
+  "• <code>server/server_core/llm_client.py</code> — query_llm() et query_llm_raw()<br>" +
+  "• <code>server/server_core/gpu_monitor.py</code> — infos GPU/VRAM<br><br>" +
+  "<b>8 groupes de routes :</b><br>" +
+  "① Model (4) — status, start, stop, vram purge<br>" +
+  "② Scan (3) — start, stop, results<br>" +
+  "③ Data (4) — export, logs, queries, check-tools<br>" +
+  "④ Strategy (5) — get/save strategy, planner analyze/plan/queries<br>" +
+  "⑤ Checkpoint (3) — status, respond, auto-mode<br>" +
+  "⑥ Graph (8) — stats, criteria, entities, targets, score, export, tasks<br>" +
+  "⑦ Cost (4) — summary, curve, log, config<br>" +
+  "⑧ Models (3) — list, add, delete",
+  "server/server.py", "create_app() appelé par main.py", "web.Application avec 36 routes");
+addStep("002.01", "002", "create_app()", "web.Application() + import routes",
+  "<b>But :</b> Créer l'objet Application aiohttp et importer tous les handlers.<br><br>" +
+  "<b>Ligne 15 :</b> <code>app = web.Application()</code><br>" +
+  "Crée un objet vide qui sera rempli avec les routes ci-dessous.<br><br>" +
+  "<b>Import massif (lignes 3-13) :</b><br>" +
+  "Le <code>from server.server_ui.routes import (...)</code> importe <b>34 fonctions</b> handler d'un coup. Cet import déclenche aussi le chargement de :<br>" +
+  "• <code>state.py</code> → instancie <code>app_state = AppState()</code> (singleton global)<br>" +
+  "• <code>gpu_monitor.py</code> → fonctions get_gpu_info(), get_system_info()<br>" +
+  "• <code>llama_manager.py</code> → find_llama_server, start_llama, stop_llama<br>" +
+  "• <code>llm_client.py</code> → query_llm(), query_llm_raw()<br>" +
+  "• <code>pipeline.py</code> → run_full_scan (importé dans routes pour h_start_scan)<br>" +
+  "• <code>logger.py</code> → logger singleton<br><br>" +
+  "<b>Retour :</b> La fonction retourne l'objet <code>app</code> qui est passé à <code>web.run_app()</code> dans main.py.",
+  "server/server.py:L15", "Import de 34 handlers", "web.Application() prêt",
+  'def create_app():\n    app = web.Application()\n    app.router.add_get("/", h_index)\n    app.router.add_get("/api/status", h_status)\n    # ... 34 routes au total ...\n    return app');
+addStep("002.02", "002", "Monter 36 routes", "8 groupes d'endpoints REST",
+  "<b>But :</b> Enregistrer chaque endpoint HTTP sur le routeur de l'application.<br><br>" +
+  "<b>Méthode :</b> <code>app.router.add_get(path, handler)</code> ou <code>app.router.add_post(path, handler)</code><br><br>" +
+  "<b>Architecture :</b> Tous les handlers sont dans <code>server/server_ui/routes.py</code> (398 lignes). Chaque handler est une <code>async def</code> qui reçoit un <code>request</code> aiohttp et retourne un <code>web.json_response()</code> ou <code>web.FileResponse()</code>.<br><br>" +
+  "<b>8 groupes :</b><br>" +
+  "① <b>Model</b> (4) — Cycle de vie llama-server<br>" +
+  "② <b>Scan</b> (3) — Contrôle du pipeline de scan<br>" +
+  "③ <b>Data</b> (4) — Export, logs, requêtes, outils<br>" +
+  "④ <b>Strategy</b> (5) — Stratégie et planificateur LLM<br>" +
+  "⑤ <b>Checkpoint</b> (3) — Pause/validation utilisateur<br>" +
+  "⑥ <b>Graph</b> (8) — GraphScorer SQLite (entités, cibles, scores)<br>" +
+  "⑦ <b>Cost</b> (4) — CostEngine (efficacité, patience, budget)<br>" +
+  "⑧ <b>Models</b> (3) — Gestion modèles sauvegardés<br><br>" +
+  "<b>Flux de données :</b> Tous les handlers lisent/écrivent dans <code>app_state</code> (singleton). Le pipeline tourne en <code>asyncio.Task</code> en arrière-plan. L'UI poll les endpoints GET toutes les 1-2s pour afficher la progression.",
+  "server/server.py + server/server_ui/routes.py", "34 handlers importés", "36 routes HTTP actives",
+  'app.router.add_get("/", h_index)\napp.router.add_get("/api/status", h_status)\napp.router.add_post("/api/model/start", h_start_model)\n// ... 33 autres routes', [
+  sub("002.02A", "002", "Grp Model (4 endpoints)", "status, model/start, model/stop, vram/purge",
+    "<b>Groupe Model — Cycle de vie llama-server</b><br><br>" +
+    "<b>GET /api/status → h_status</b><br>" +
+    "Endpoint principal, pollé toutes les 2s par l'UI. Retourne :<br>" +
+    "• <code>model</code> : active_model, name, server_running, model_path<br>" +
+    "• <code>gpu</code> : used_mb, total_mb, gpu_name, utilization<br>" +
+    "• <code>system</code> : ram_used, ram_total, cpu_percent<br>" +
+    "• <code>scan</code> : running, progress (total/completed/ETA)<br>" +
+    "• <code>vram_history</code> : 60 derniers points (graphe VRAM)<br>" +
+    "• <code>models_available</code> : MODELS du settings.py<br>" +
+    "• <code>llama_server_found</code> : chemin ou '' si absent<br><br>" +
+    "<b>POST /api/model/start → h_start_model</b><br>" +
+    "Body: <code>{model, model_path, gpu_layers, ctx_size, llama_server_path}</code><br>" +
+    "Appelle <code>start_llama()</code> → lance subprocess → health check 60s<br><br>" +
+    "<b>POST /api/model/stop → h_stop_model</b><br>" +
+    "Appelle <code>stop_llama()</code> → terminate + wait(5s) → kill si nécessaire<br><br>" +
+    "<b>POST /api/vram/purge → h_vram_purge</b><br>" +
+    "1. stop_llama() 2. taskkill /F tous les llama-server.exe 3. nvidia-smi --gpu-reset 4. sleep(2) 5. retourne GPU info"),
+  sub("002.02B", "002", "Grp Scan (3 endpoints)", "scan/start, scan/stop, results",
+    "<b>Groupe Scan — Contrôle du pipeline</b><br><br>" +
+    "<b>POST /api/scan/start → h_start_scan</b><br>" +
+    "Pré-conditions : is_running=True (LLM actif), scan_running=False<br>" +
+    "Action : <code>asyncio.create_task(run_full_scan())</code><br>" +
+    "→ Lance le pipeline en tâche asynchrone de fond. Le serveur reste responsive.<br><br>" +
+    "<b>POST /api/scan/stop → h_stop_scan</b><br>" +
+    "Met <code>scan_running=False</code> + appelle <code>pipeline.stop()</code><br>" +
+    "Le pipeline vérifie <code>self.running</code> à chaque boucle et s'arrête proprement.<br><br>" +
+    "<b>GET /api/results → h_results</b><br>" +
+    "Retourne : <code>{results, categories, resolution}</code><br>" +
+    "• results : dict {state → {city → {cat → candidate}}}<br>" +
+    "• categories : labels (cinema, gaming, culture)<br>" +
+    "• resolution : statut par tâche"),
+  sub("002.02C", "002", "Grp Data (4 endpoints)", "export, logs, queries, check-tools",
+    "<b>Groupe Data — Données et diagnostics</b><br><br>" +
+    "<b>GET /api/export → h_export</b><br>" +
+    "Sert <code>results.json</code> en téléchargement (Content-Disposition: attachment). 404 si pas encore de fichier.<br><br>" +
+    "<b>GET /api/logs → h_logs</b><br>" +
+    "Retourne les 150 derniers messages de <code>logger.get_recent(150)</code>. Logs en mémoire (pas de fichier).<br><br>" +
+    "<b>GET /api/queries → h_queries</b><br>" +
+    "Retourne les 100 dernières entrées de <code>app_state.query_log</code>. Chaque entrée : {query, engine, results, time}.<br><br>" +
+    "<b>GET /api/check-tools → h_check_tools</b><br>" +
+    "Appelle <code>check_browser_available()</code> → retourne {playwright: bool, firefox: bool, fallback: bool}. Utilisé par l'UI pour afficher un warning si Playwright manque."),
+  sub("002.02D", "002", "Grp Strategy (5 endpoints)", "strategy, planner/analyze, plan, queries",
+    "<b>Groupe Strategy — Stratégie et planification LLM</b><br><br>" +
+    "<b>GET /api/strategy → h_strategy_get</b><br>" +
+    "Charge et retourne <code>strategy.txt</code> (texte libre de l'utilisateur).<br><br>" +
+    "<b>POST /api/strategy → h_strategy_save</b><br>" +
+    "Sauvegarde le texte stratégie modifié par l'utilisateur.<br><br>" +
+    "<b>POST /api/planner/analyze → h_planner_analyze</b><br>" +
+    "⭐ <b>Endpoint clé.</b> Body: <code>{prompt}</code><br>" +
+    "1. Crée <code>StrategyPlanner(llm_func=query_llm_raw)</code><br>" +
+    "2. <code>await planner.analyze(prompt)</code> → 1er appel LLM → WHO/WHERE/WHAT/WHEN<br>" +
+    "3. <code>await planner.build_strategies(analysis)</code> → 2ème appel LLM → 3 tiers de stratégies<br>" +
+    "4. <code>planner.save_plan()</code> → strategy_plan.json<br>" +
+    "Retourne : analysis, strategies, query_counts, plan_text, saved_to<br><br>" +
+    "<b>GET /api/planner/plan → h_planner_plan</b><br>" +
+    "Retourne le dernier plan sauvegardé (strategy_plan.json). 404 si aucun.<br><br>" +
+    "<b>GET /api/planner/queries → h_planner_queries</b><br>" +
+    "Query params : <code>?city=Houston&state=Texas</code><br>" +
+    "Reconstruit le planner depuis le plan sauvegardé, substitue {city}/{state}, retourne les queries aplaties."),
+  sub("002.02E", "002", "Grp Checkpoint (3 endpoints)", "checkpoint, respond, auto-mode",
+    "<b>Groupe Checkpoint — Pause et validation utilisateur</b><br><br>" +
+    "Le système de checkpoint permet à l'utilisateur de valider chaque étape critique du pipeline (requêtes, résultats, candidats).<br><br>" +
+    "<b>GET /api/checkpoint → h_checkpoint_status</b><br>" +
+    "Pollé toutes les 1.5s par l'UI. Retourne :<br>" +
+    "• <code>waiting</code> : true si pipeline en pause<br>" +
+    "• <code>name</code> : 'queries_ready' | 'search_done' | 'candidates_found'<br>" +
+    "• <code>data</code> : données à montrer (queries, liens, candidats)<br>" +
+    "• <code>auto_mode</code> : true si validation automatique<br><br>" +
+    "<b>POST /api/checkpoint/respond → h_checkpoint_respond</b><br>" +
+    "Body : <code>{action: 'continue'|'modify'|'skip'|'auto', modifications: {...}}</code><br>" +
+    "• continue → pipeline reprend<br>" +
+    "• modify → pipeline reprend avec les données modifiées par l'utilisateur<br>" +
+    "• skip → catégorie marquée FAILED<br>" +
+    "• auto → passe en mode auto (plus de pauses)<br>" +
+    "Appelle <code>checkpoint_event.set()</code> pour débloquer le pipeline.<br><br>" +
+    "<b>POST /api/auto-mode → h_set_auto_mode</b><br>" +
+    "Body : <code>{auto: true|false}</code>. Toggle le mode automatique."),
+  sub("002.02F", "002", "Grp Graph (8 endpoints)", "graph/stats, criteria, entities, targets, score, export, tasks",
+    "<b>Groupe Graph — GraphScorer (SQLite)</b><br><br>" +
+    "Le GraphScorer stocke toutes les entités et cibles trouvées dans une base SQLite (<code>scout_graph.db</code>). 7 tables.<br><br>" +
+    "<b>GET /api/graph/stats</b> — Stats globales : nb entités, targets, validées, scores moyens<br><br>" +
+    "<b>GET /api/graph/criteria</b> — Critères de scoring actuels + threshold<br>" +
+    "<b>POST /api/graph/criteria</b> — Modifier les critères et le threshold de validation<br><br>" +
+    "<b>GET /api/graph/entities</b> — Liste des entités. Filtres : <code>?status=X&city=Y</code><br>" +
+    "Une entité = une personne/créateur trouvé pendant le scan.<br><br>" +
+    "<b>GET /api/graph/targets</b> — Liste des cibles YouTube. Filtres : <code>?platform=youtube&validated=1</code><br>" +
+    "Une target = un lien YouTube associé à une entité.<br><br>" +
+    "<b>GET /api/graph/score</b> — Détail du score d'une target. Param : <code>?target_id=123</code><br>" +
+    "Retourne target + score détaillé + entité associée.<br><br>" +
+    "<b>GET /api/graph/export</b> — Export JSON ou CSV. Params : <code>?format=csv&validated=1</code><br><br>" +
+    "<b>GET /api/graph/tasks</b> — Tâches en cours. Filtre : <code>?status=pending</code>"),
+  sub("002.02G", "002", "Grp Cost (4 endpoints)", "cost/summary, curve, log, config",
+    "<b>Groupe Cost — CostEngine (efficacité du scraping)</b><br><br>" +
+    "Le CostEngine suit l'efficacité du pipeline : combien de queries pour combien de résultats ? Quand arrêter de chercher ?<br><br>" +
+    "<b>GET /api/cost/summary</b> — Résumé : efficiency (trouvés/actions), patience restante, budget consommé, sources actives<br><br>" +
+    "<b>GET /api/cost/curve</b> — Courbe temporelle d'efficacité. Chaque point = {time, efficiency, found, cost}. Utilisé pour le graphe dans l'UI.<br><br>" +
+    "<b>GET /api/cost/log</b> — N dernières actions. Param : <code>?n=50</code>. Chaque action = {source, found, cost, query, roi}<br><br>" +
+    "<b>GET/POST /api/cost/config</b><br>" +
+    "GET : retourne la config actuelle (target_count, patience, epsilon, min_roi, budget)<br>" +
+    "POST : modifie la config. Body : <code>{target_count, patience_initial, patience_recharge, epsilon, min_roi, global_budget, sources}</code>"),
+  sub("002.02H", "002", "Grp Models (3 endpoints)", "models/list, add, delete",
+    "<b>Groupe Models — Gestion des modèles sauvegardés</b><br><br>" +
+    "L'utilisateur peut sauvegarder plusieurs configs de modèle LLM dans <code>saved_models.json</code>.<br><br>" +
+    "<b>GET /api/models/list</b> — Retourne la liste des modèles sauvegardés. Chaque modèle : {name, path, ngl, ctx, preset, added}.<br><br>" +
+    "<b>POST /api/models/add</b> — Ajouter ou mettre à jour un modèle.<br>" +
+    "Body : <code>{name, path, ngl, ctx, preset}</code><br>" +
+    "Si un modèle avec le même nom existe, il est mis à jour. Sinon, ajouté avec timestamp.<br><br>" +
+    "<b>POST /api/models/delete</b> — Supprimer un modèle par nom.<br>" +
+    "Body : <code>{name}</code><br>" +
+    "Filtre la liste et sauvegarde."),
+]);
+addStep("002.03", "002", "Servir index.html", "GET / → interface 836 lignes",
+  "<b>But :</b> Retourner le fichier HTML de l'interface utilisateur quand quelqu'un accède à <code>http://localhost:8080/</code>.<br><br>" +
+  "<b>Handler :</b><br>" +
+  "<code>async def h_index(req):</code><br>" +
+  "<code>    return web.FileResponse(Path(__file__).parent / 'index.html')</code><br><br>" +
+  "<b>Fichier :</b> <code>server/server_ui/index.html</code> — 836 lignes, 51 KB<br>" +
+  "Tout en un seul fichier : HTML + CSS + JavaScript inline.<br><br>" +
+  "<b>5 onglets :</b><br>" +
+  "• <b>Config</b> — Sélection modèle, chemin GGUF, GPU layers, Start/Stop<br>" +
+  "• <b>Mission</b> — Prompt stratégique, analyse LLM, lancement du scan<br>" +
+  "• <b>Live</b> — Arc de progression, compteurs temps réel, logs scrollables<br>" +
+  "• <b>Requêtes</b> — Historique de toutes les recherches effectuées<br>" +
+  "• <b>Résultats</b> — Cartes des chaînes vérifiées, filtres, export<br><br>" +
+  "<b>Checkpoint Banner :</b> Barre fixe en haut qui apparaît quand le pipeline est en pause. Boutons : Valider | Modifier | Passer | Mode Auto.<br><br>" +
+  "<b>Polling :</b> L'UI fait des <code>fetch()</code> réguliers :<br>" +
+  "• <code>GET /api/status</code> toutes les 2s (progress, VRAM, modèle)<br>" +
+  "• <code>GET /api/checkpoint</code> toutes les 1.5s (pause en attente ?)<br>" +
+  "• <code>GET /api/logs</code> toutes les 3s (logs pipeline)",
+  "server/server_ui/index.html", "Requête GET /", "Fichier HTML 836 lignes",
+  'async def h_index(req):\n    return web.FileResponse(\n        Path(__file__).parent / "index.html"\n    )');
+ar("002","002.01"); ar("002.01","002.02");
+ar("002.02","002.02A","right"); ar("002.02","002.02B","right"); ar("002.02","002.02C","right");
+ar("002.02","002.02D","right"); ar("002.02","002.02E","right"); ar("002.02","002.02F","right"); ar("002.02","002.02G","right"); ar("002.02","002.02H","right");
+ar("002.02","002.03");
+
+// ── 003: INDEX.HTML ── (col 3)
+ar("002.03","003","call","SERT →");
+addMain("003", "003", "ETAPE 003 : INDEX.HTML", "Interface web — 836 lignes, 5 onglets, 20 fonctions JS",
+  "<b>server/server_ui/index.html</b> — fichier monolithique HTML+CSS+JS.<br><br>" +
+  "<b>Rôle :</b> Interface utilisateur complète pour contrôler le pipeline, visualiser la progression, et valider chaque étape.<br><br>" +
+  "<b>Architecture :</b> Tout en un seul fichier (pas de build, pas de framework, pas de dépendances externes sauf Google Fonts). CSS variables pour le thème sombre. JavaScript vanilla avec <code>fetch()</code> pour les appels API.<br><br>" +
+  "<b>5 onglets :</b><br>" +
+  "① <b>Configuration</b> — Modèles LLM (GGUF), VRAM, GPU, Playwright<br>" +
+  "② <b>Mission & Stratégie</b> — Prompt → Analyse LLM → Stratégies → Lancement<br>" +
+  "③ <b>Scan en direct</b> — Arc SVG, compteurs, console de logs<br>" +
+  "④ <b>Requêtes</b> — Historique des recherches (Brave/Google)<br>" +
+  "⑤ <b>Résultats</b> — Cartes chaînes vérifiées, filtres, export<br><br>" +
+  "<b>Checkpoint Banner :</b> Barre fixe en bas d'écran avec animation slideUp. Apparaît quand le pipeline est en pause. 3 boutons : Valider | Passer | Auto.<br><br>" +
+  "<b>Polling :</b><br>" +
+  "• <code>poll()</code> toutes les 3s → GET /api/status + /api/logs + /api/results<br>" +
+  "• <code>pollCheckpoint()</code> toutes les 1.5s → GET /api/checkpoint<br><br>" +
+  "<b>CSS :</b> 18 variables, thème sombre, 150+ classes. Polices: DM Sans + JetBrains Mono.<br>" +
+  "<b>JS :</b> 20 fonctions async, 20 endpoints API appelés, 0 dépendance externe.",
+  "server/server_ui/index.html", "GET / → web.FileResponse", "Interface interactive dans le navigateur");
+addStep("003.01", "003", "Onglet Config", "Modèles LLM + VRAM + Playwright",
+  "<b>But :</b> Configurer le modèle LLM, surveiller la VRAM, vérifier Playwright.<br><br>" +
+  "<b>3 sous-sections :</b> Cliquez sur les sous-éléments pour les détails, ou déployez le noeud pour voir les 3 blocs.",
+  "index.html", "Utilisateur", "Modèle LLM configuré et prêt", "", [
+    sub("003.01A", "003", "Modèle LLM", "Parcourir, enregistrer, démarrer, arrêter",
+      "<b>Section Modèle LLM</b><br><br>" +
+      "<b>Modèles enregistrés</b> — Cartes cliquables. Stockés dans <code>saved_models.json</code>.<br>" +
+      "<b>Ajouter</b> — Nom, chemin .gguf, preset, GPU layers, context.<br>" +
+      "<b>🚀 Démarrer</b> → <code>startM()</code> → POST /api/model/start<br>" +
+      "<b>⏹ Arrêter</b> → <code>stopM()</code> → POST /api/model/stop<br>" +
+      "<b>🧹 Vider VRAM</b> → <code>purgeVram()</code><br><br>" +
+      "<span style='color:#ffe036;cursor:pointer' onclick='openFlowPanel(\"model_llm\")'>▶ Cliquer ici ou sur le noeud pour ouvrir le diagramme de flux détaillé</span>"),
+    sub("003.01B", "003", "Monitoring VRAM", "Barre GPU + métriques système",
+      "<b>Barre VRAM</b> — gradient vert→bleu→violet, rouge si >85%.<br>" +
+      "Mis à jour toutes les 3s par <code>poll()</code>.<br><br>" +
+      "<b>Métriques affichées :</b><br>" +
+      "• <b>#vFill / #vTxt</b> — VRAM utilisée / totale (barre + texte)<br>" +
+      "• <b>#gUtil</b> — GPU utilisation %<br>" +
+      "• <b>#gCpu</b> — CPU %<br>" +
+      "• <b>#gRam</b> — RAM %<br>" +
+      "• <b>#gFree</b> — VRAM libre en MB<br><br>" +
+      "<b>Source :</b> <code>GET /api/status</code> → <code>response.gpu</code> (from gpu_monitor.py)"),
+    sub("003.01C", "003", "Vérification Playwright", "Check Firefox + Playwright installés",
+      "<b>Bouton</b> 🔍 Vérifier l'installation<br><br>" +
+      "<b>Action :</b> <code>checkTools()</code> → <code>GET /api/check-tools</code><br><br>" +
+      "<b>Handler :</b> <code>h_check_tools()</code> → <code>check_browser_available()</code><br><br>" +
+      "<b>Vérifie 3 choses :</b><br>" +
+      "• <b>playwright_installed</b> — import playwright réussit ?<br>" +
+      "• <b>firefox_installed</b> — firefox browser disponible ?<br>" +
+      "• <b>fallback</b> — mode HTTP direct si pas de navigateur<br><br>" +
+      "<b>Affichage :</b> ✅ vert si OK, ❌ rouge si manquant + commande d'installation")
+  ]);
+addStep("003.02", "003", "Onglet Mission", "Prompt → Analyse → Stratégies → Lancement",
+  "<b>But :</b> Définir la mission de recherche, la faire analyser par le LLM, valider les stratégies, lancer le scan.<br><br>" +
+  "<b>Flux en 5 sections séquentielles :</b><br><br>" +
+  "<b>① Objectif de recherche</b><br>" +
+  "Textarea pour le prompt en langage naturel. Ex: <i>\"Trouver les youtubeurs cinema de moins de 100k abonnés dans chaque état américain\"</i><br>" +
+  "3 actions : 🧠 Analyser (LLM) | 📄 Importer .txt | 📋 Charger dernier plan<br><br>" +
+  "<b>② Décomposition QUI/OÙ/QUOI/QUAND</b> (section cachée, apparaît après analyse)<br>" +
+  "Grille 2×2 avec tags colorés : Explicite (bleu), Affiné (vert), Implicite (violet), Rejets (rouge barré).<br>" +
+  "L'objectif et le domaine sont affichés en en-tête avec un score de confiance.<br><br>" +
+  "<b>③ Stratégies de recherche</b><br>" +
+  "3 onglets par tier : Direct (vert), Semi-direct (ambre), Indirect (violet).<br>" +
+  "Chaque stratégie est un arbre de nœuds avec : ID, action, description, condition, queries (tags cyan), output attendu. Les sub_steps sont indentés récursivement.<br><br>" +
+  "<b>④ Modifier</b><br>" +
+  "Textarea pour décrire une modification en langage naturel. Le prompt original est augmenté et re-analysé. Aussi: éditeur brut strategy.txt (dépliable).<br><br>" +
+  "<b>⑤ Valider et Lancer</b><br>" +
+  "Toggle Mode: 🔍 Validation manuelle ↔ 🤖 Mode automatique.<br>" +
+  "Bouton ▶ Lancer → <code>startScan()</code> → POST /api/scan/start → bascule sur onglet Live.",
+  "index.html", "Prompt utilisateur", "Pipeline lancé en asyncio.Task");
+addStep("003.03", "003", "Onglet Live", "Arc progress + compteurs + logs",
+  "<b>But :</b> Suivre la progression du scan en temps réel.<br><br>" +
+  "<b>Layout :</b> 2 colonnes en haut (progression + compteurs), console en bas.<br><br>" +
+  "<b>Arc de progression SVG :</b><br>" +
+  "Cercle SVG avec <code>stroke-dashoffset</code> animé. Pourcentage central (#pPct). Mis à jour par poll() : <code>done/total*100</code>.<br>" +
+  "Texte : état courant (ex: <b>Texas</b> › Houston › cinema) + détail (127/450 tâches — ETA 12m).<br><br>" +
+  "<b>3 compteurs :</b><br>" +
+  "• <b>États /50</b> (#pStates) — nombre d'états terminés<br>" +
+  "• <b>Résolus</b> (#pOk, vert) — tâches avec chaîne vérifiée trouvée<br>" +
+  "• <b>Échoués</b> (#pFail, rouge) — tâches épuisées sans résultat<br><br>" +
+  "<b>Console de logs (#logBox) :</b><br>" +
+  "Affiche les 80 derniers logs (font JetBrains Mono, 11px). Scroll automatique vers le bas.<br>" +
+  "Coloration : normal=gris, warning=ambre ([RATE LIMITED], [ATTENTION]), error=rouge ([ERROR], [FAIL]).<br>" +
+  "Mis à jour toutes les 3s par poll() → GET /api/logs.",
+  "index.html", "poll() toutes les 3s", "Affichage temps réel de la progression");
+addStep("003.04", "003", "Onglet Requêtes", "Historique recherches Brave/Google",
+  "<b>But :</b> Afficher l'historique de toutes les recherches effectuées par le pipeline.<br><br>" +
+  "<b>En-tête :</b> 2 stat-cards — nombre total de requêtes + nombre total de liens trouvés.<br><br>" +
+  "<b>Liste des requêtes :</b><br>" +
+  "Chaque requête est un bloc dépliable (click → toggle). Contient :<br>" +
+  "• <b>Badge moteur</b> — Google (bleu #4285f4) ou Brave (orange #fb542b)<br>" +
+  "• <b>Texte de la requête</b> — font mono, couleur cyan, tronqué si long<br>" +
+  "• <b>Nombre de résultats</b> — badge vert<br>" +
+  "• <b>Chevron ▼</b> — indicateur d'expansion<br><br>" +
+  "<b>Au clic (déplié) :</b><br>" +
+  "Grille 2 colonnes : titre du résultat (bold) + URL (bleu, cliquable, target=_blank). Optionnel : snippet en gris dessous.<br><br>" +
+  "<b>Données :</b> <code>app_state.query_log</code> pollé via GET /api/queries (100 dernières). Chaque entrée : {query, engine, results_count, results: [{title, url, snippet}]}.<br><br>" +
+  "<b>Rendu :</b> <code>renderQueries()</code> — affiche les 50 plus récentes en ordre inverse (dernière en haut).",
+  "index.html", "GET /api/queries (poll)", "Liste interactive des recherches");
+addStep("003.05", "003", "Onglet Résultats", "Cartes chaînes + filtres + export",
+  "<b>But :</b> Afficher les chaînes YouTube vérifiées avec leurs scores, et permettre le filtrage et l'export.<br><br>" +
+  "<b>En-tête :</b> Titre + bouton 💾 Exporter JSON (→ GET /api/export, téléchargement).<br><br>" +
+  "<b>Filtres :</b><br>" +
+  "• Input texte #fSearch — filtre par nom de chaîne, ville ou état<br>" +
+  "• Boutons catégorie : Tout | 🎬 Cinéma | 🎮 Gaming | 🎭 Culture<br>" +
+  "Chaque clic appelle <code>setF(cat)</code> puis <code>render()</code>.<br><br>" +
+  "<b>Carte chaîne (.channel) :</b><br>" +
+  "• <b>Avatar coloré</b> — 2 initiales, gradient par catégorie : cinema=rose, gaming=bleu, culture=ambre<br>" +
+  "• <b>Nom</b> — lien cliquable vers YouTube (target=_blank)<br>" +
+  "• <b>Description</b> — 2 lignes max (line-clamp CSS)<br>" +
+  "• <b>Métadonnées</b> — 👥 abonnés, 📍 ville+état, score (barre + %), tag Recent/date<br>" +
+  "• <b>Score bar</b> — vert ≥70%, ambre ≥50%, rouge <50%<br><br>" +
+  "<b>Données :</b> <code>render()</code> parcourt <code>res[state][city][cat]</code> (structure 3 niveaux). Filtre par catégorie + texte. Affiche aussi les échecs (opacity 50%, icône ❌).<br><br>" +
+  "<b>Badge #tabRN :</b> Compteur dans l'onglet — mis à jour par render().",
+  "index.html", "GET /api/results (poll)", "Cartes visuelles des chaînes trouvées");
+addStep("003.06", "003", "Checkpoint Banner", "✋ Pause validation — barre fixe bas d'écran",
+  "<b>But :</b> Permettre à l'utilisateur de valider, modifier ou sauter chaque étape critique du pipeline.<br><br>" +
+  "<b>Apparence :</b> Barre fixe en bas d'écran (<code>position:fixed; bottom:0</code>). Bordure ambre en haut, fond sombre, ombre portée. Animation <code>slideUp</code> à l'apparition.<br><br>" +
+  "<b>Contenu :</b><br>" +
+  "• Icône ✋ (32px)<br>" +
+  "• <b>#ckptTitle</b> — Nom traduit : 'Requêtes générées', 'Recherche terminée', 'Candidats trouvés'<br>" +
+  "• <b>#ckptMsg</b> — Message contextuel (ex: '8 requêtes pour Houston / cinema. Valider?')<br>" +
+  "• <b>#ckptDetail</b> — Détail technique (liste des queries, ou 'X liens, Y YouTube')<br><br>" +
+  "<b>3 boutons d'action :</b><br>" +
+  "• <b>✅ Valider</b> → <code>ckptRespond('continue')</code> → pipeline reprend normalement<br>" +
+  "• <b>⏭ Passer</b> → <code>ckptRespond('skip')</code> → catégorie marquée FAILED, passe à la suivante<br>" +
+  "• <b>🤖 Auto</b> → <code>ckptRespond('auto')</code> → active le mode automatique (plus de pauses)<br><br>" +
+  "<b>Polling :</b> <code>pollCheckpoint()</code> toutes les 1.5s. Si <code>response.waiting == true</code> → affiche la bannière et bascule vers l'onglet Live. Si false → cache la bannière.<br><br>" +
+  "<b>3 checkpoints dans le pipeline :</b><br>" +
+  "• <code>queries_ready</code> — après génération des requêtes (P1)<br>" +
+  "• <code>search_done</code> — après la recherche navigateur (P2)<br>" +
+  "• <code>candidates_found</code> — après l'assemblage des candidats (P5)",
+  "index.html", "GET /api/checkpoint (poll 1.5s)", "Action utilisateur → POST /api/checkpoint/respond");
+ar("003","003.01"); ar("003.01","003.02"); ar("003.02","003.03"); ar("003.03","003.04"); ar("003.04","003.05"); ar("003.05","003.06");
+
+// ── 004: LLAMA MANAGER ── (col 4, called from UI config tab)
+ar("003.01","004","call","APPELLE →");
+addMain("004", "004", "ETAPE 004 : LLAMA MANAGER", "Cycle de vie LLM", "Start/stop llama-server subprocess.", "server/server_core/llama_manager.py");
+addStep("004.01", "004", "find_llama_server()", "Cherche executable", "PATH + chemins courants.", "llama_manager.py:L7");
+addStep("004.02", "004", "start_llama()", "Subprocess background", "Lance -m model -ngl N -c ctx.", "llama_manager.py:L14", "Modele .gguf", "Process", "llama-server -m model.gguf --port 8081 -ngl 35");
+addStep("004.03", "004", "Health check", "Poll /health × 60s", "Boucle 1s × 60. Crash→erreur. 200→pret.", "llama_manager.py:L32");
+ar("004","004.01"); ar("004.01","004.02"); ar("004.02","004.03");
+
+// ── 005: STRATEGY PLANNER ── (col 5, called from Mission tab)
+ar("003.02","005","call","APPELLE →");
+addMain("005", "005", "ETAPE 005 : STRATEGY PLANNER", "Decompose prompt", "2 appels LLM: analyse + strategies.", "pipeline/pipeline_core/strategy_planner.py");
+addStep("005.01", "005", "Analyse LLM", "QUI / OU / QUOI / QUAND", "4 dimensions × {explicit, implicit, rejections}.", "strategy_planner.py:L108", "Prompt", "Analysis");
+addStep("005.02", "005", "Build Strategies", "3 tiers hierarchiques", "Directe, Semi-directe, Indirecte. Arbre d'etapes.", "strategy_planner.py:L140", "Analysis", "Strategies");
+addStep("005.03", "005", "Save plan", "→ strategy_plan.json", "Sauvegarde dans RESULTATS/.", "strategy_planner.py");
+ar("005","005.01"); ar("005.01","005.02"); ar("005.02","005.03");
+
+// ── 006: PIPELINE SCAN ── (col 6, called from Mission tab)
+ar("003.02","006","call","LANCE SCAN →");
+addMain("006", "006", "ETAPE 006 : RUN_FULL_SCAN()", "Init + boucle 50 etats", "Init Graph/Cost. Boucle US_STATES.", "pipeline/pipeline.py");
+addStep("006.01", "006", "Init Orchestrator", "Graph + Cost + sources", "GraphScorer()→SQLite, CostEngine(450).", "pipeline.py:L118");
+addStep("006.02", "006", "Resume check", "Skip etats deja faits", "Lit _resume.json.", "pipeline.py:L460");
+addStep("006.03", "006", "Boucle 50 etats", "for state in US_STATES", "process_state() + _save() chaque.", "pipeline.py:L420");
+ar("006","006.01"); ar("006.01","006.02"); ar("006.02","006.03");
+
+// ── 007: PROCESS_STATE + CITY ── (col 7)
+ar("006.03","007","call","APPELLE →");
+addMain("007", "007", "ETAPE 007 : PROCESS_STATE", "1 etat = 3 villes", "Boucle 3 villes principales.", "pipeline.py");
+addStep("007.01", "007", "Boucle 3 villes", "for city in cities", "_process_city() + progress.");
+addMain("007.5", "007", "ETAPE 008 : _PROCESS_CITY", "3 cats × 3 waves max", "Cinema, Gaming, Culture.", "pipeline.py");
+addStep("007.51", "007", "Boucle waves × cats", "Double boucle", "for wave 1→3, for cat: _process_category_wave().");
+ar("007","007.01"); ar("007.01","007.5"); ar("007.5","007.51");
+
+// ── 008: PIPELINE WAVE — THE CORE ── (col 8)
+ar("007.51","009","call","APPELLE →");
+addMain("009", "008", "ETAPE 009 : CATEGORY WAVE", "COEUR — 7 Phases", "Pipeline complet pour 1 ville + 1 cat + 1 vague.", "pipeline.py");
+
+addStep("009.01", "008", "P1 — Generer Queries", "Plan ou LLM → 6-12 requetes", "strategy_plan.json ou query LLM.", "pipeline.py:L203", "ville,cat,wave", "requetes", "", [
+  sub("009.011", "009", "Plan Loader", "Charge strategy_plan.json → substitue {city}"),
+  sub("009.012", "009", "Query LLM", "strategy_prompt → 8 angles, dedup > 70%"),
+]);
+addStep("009.02", "008", "✋ CHECKPOINT 1", "Valider requetes", "Pause: N requetes. Valider | Modifier | Passer.");
+
+addStep("009.03", "008", "P2 — Browser Search", "Firefox → Brave + Google", "Stealth browser × 2 moteurs × 2 pages.", "pipeline.py:L230", "Requetes", "HTML + links", "", [
+  sub("009.031", "009", "StealthBrowser", "Firefox anti-detection, random UA, delays 3-12s"),
+  sub("009.032", "009", "Search Loop", "query × engine × page → save HTML"),
+  sub("009.033", "009", "HTML Parser", "parse_search_html() → links, YouTube URLs"),
+  sub("009.034", "009", "CostEngine", "ROI < 0.05 → skip"),
+  sub("009.035", "009", "⚠ Fallback HTTP", "Si Playwright crash → HTTP direct"),
+]);
+addStep("009.04", "008", "✋ CHECKPOINT 2", "Valider resultats recherche", "N liens, N YouTube, top 30.");
+
+addStep("009.05", "008", "P3 — Triage LLM", "Score URLs 0-10", "Batch 30. Garde >= 4 → top 25.", "result_triage.py", "URLs", "Top 25");
+
+addStep("009.06", "008", "P4 — Fetch + Extract", "Pages → noms createurs", "Fetch top 25, LLM extrait fragments.", "page_extractor.py", "Top 25", "Fragments", "", [
+  sub("009.061", "009", "Extract LLM", "Noms, URLs YouTube, citations, confidence"),
+]);
+
+addStep("009.07", "008", "P5 — Assembly", "Fragments → candidats", "LLM consolide par personne.", "candidate_assembler.py", "Fragments", "Candidats", "", [
+  sub("009.071", "009", "GraphScorer feed", "add_entity() + add_target() → SQLite"),
+]);
+addStep("009.08", "008", "✋ CHECKPOINT 3", "Valider candidats", "Nom, URL, evidence, sources.");
+
+addStep("009.09", "008", "P5b — Follow-ups", "URLs manquantes", "\"nom\" youtube channel.", "followup_search.py");
+
+addStep("009.10", "008", "P6 — YouTube Verify", "Existe ? Subs 20k-150k ?", "verify_youtube_channel().", "youtube_checker.py", "URLs", "Donnees chaine", "", [
+  sub("009.101", "009", "Adversarial City", "LLM challenge ville. Score 0-1. Reject < 0.4"),
+  sub("009.102", "009", "Category Check", "LLM verifie categorie. Reject < 0.3"),
+]);
+
+addStep("009.11", "008", "P7 — Score final", "RESOLVED ou FAILED", "compute_total_score(). >= 0.5 → VERIFIED.", "pipeline.py:L350", "Candidats", "RESOLVED", "", [
+  sub("009.111", "009", "Graph Scoring", "set_criterion, compute_score() vs threshold"),
+]);
+
+addStep("009.12", "008", "Escalation", "0 verifie → wave + 1", "LLM analyse echec. Wave=3 → FAILED.", "escalation.py");
+
+// Wave arrows
+ar("009","009.01");
+ar("009.01","009.011","right"); ar("009.01","009.012","right");
+ar("009.01","009.02"); ar("009.02","009.03");
+ar("009.03","009.031","right"); ar("009.03","009.032","right"); ar("009.03","009.033","right"); ar("009.03","009.034","right"); ar("009.03","009.035","right");
+ar("009.03","009.04"); ar("009.04","009.05"); ar("009.05","009.06");
+ar("009.06","009.061","right");
+ar("009.06","009.07"); ar("009.07","009.071","right");
+ar("009.07","009.08"); ar("009.08","009.09"); ar("009.09","009.10");
+ar("009.10","009.101","right"); ar("009.10","009.102","right");
+ar("009.10","009.11"); ar("009.11","009.111","right");
+ar("009.11","009.12");
+ar("009.12","007.51","loop","↑ RETRY wave+1");
+
+// ── 010: SAVE ── (col 10)
+ar("009.11","010.0","call","SAUVE →");
+addMain("010.0", "010", "ETAPE 010 : SAVE & EXPORT", "5 fichiers", "Sauvegarde apres chaque etat.", "pipeline.py");
+addStep("010.01", "010", "results.json", "Resultats complets", "{state:{city:{cat:candidate}}}.");
+addStep("010.02", "010", "_resume.json", "Reprise crash", "Etats termines pour skip.");
+addStep("010.03", "010", "CSV exports", "Requetes + verifies", "search_csv + verified_csv.");
+addStep("010.04", "010", "scout_graph.db", "SQLite complet", "7 tables.");
+addStep("010.05", "010", "cost_state.json", "Stats CostEngine", "Sources, hit rates, patience.");
+ar("010.0","010.01"); ar("010.01","010.02"); ar("010.02","010.03"); ar("010.03","010.04"); ar("010.04","010.05");
+ar("010.05","006.03","loop","↑ NEXT STATE");
+
+
+// ═══════════════════════════════════════════════════════════════════════
+// LAYOUT: Single global Y cursor that advances for ALL columns.
+// Each row takes space globally. Sub-steps (expanded) are inserted
+// between parent and next sibling, pushing everything down.
+// A node's X = colX(PROG[node.prog].col)
+// A sub-step's X = colX(PROG[node.prog].col + 1)   ← one column to the right
+// ═══════════════════════════════════════════════════════════════════════
+
+function layout() {
+  // Reset all visibility
+  Object.values(NODES).forEach(n => { n._vis = false; });
+
+  let y = 20;
+  
+  ROWS.forEach(row => {
+    const p = PROG[row.prog];
+    if (!p) return;
+    
+    row._vis = true;
+    row._x = colX(p.col);
+    row._y = y;
+    
+    const h = row.type === "main" ? MAIN_ROW_H : ROW_H;
+    y += h + V_GAP;
+    
+    // If expanded, insert children
+    if (row._exp && row.children.length) {
+      row.children.forEach(ch => {
+        ch._vis = true;
+        // Sub-steps go ONE column to the right of the parent
+        ch._x = colX(p.col + 1);
+        ch._y = y;
+        y += SUB_ROW_H + V_GAP;
+      });
+    }
+  });
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════════════════════
+const cv = document.getElementById('cv'), svg = document.getElementById('svg'), cw = document.getElementById('cw');
+let zoom = .22, panX = 30, panY = 30, dragging = false, dx0, dy0, selId = null;
+const els = {};
+
+function renderAll() {
+  cv.querySelectorAll('.nd,.clab,.rail').forEach(e => e.remove());
+  svg.querySelectorAll('polyline').forEach(e => e.remove());
+  Object.keys(els).forEach(k => delete els[k]);
+  
+  layout();
+  
+  const vis = Object.values(NODES).filter(n => n._vis);
+  
+  // Draw rails (vertical lines per program column)
+  const progYs = {};
+  vis.forEach(n => {
+    const p = PROG[n.prog]; if (!p) return;
+    const c = p.col;
+    if (!progYs[c]) progYs[c] = { min: n._y, max: n._y + 60, color: p.color };
+    progYs[c].min = Math.min(progYs[c].min, n._y);
+    progYs[c].max = Math.max(progYs[c].max, n._y + 60);
+  });
+  Object.entries(progYs).forEach(([c, info]) => {
+    const rail = document.createElement('div');
+    rail.className = 'rail';
+    rail.style.left = (colX(+c) + COL_W / 2) + 'px';
+    rail.style.top = info.min + 'px';
+    rail.style.height = (info.max - info.min) + 'px';
+    rail.style.background = info.color;
+    rail.style.opacity = '0.07';
+    cv.appendChild(rail);
+  });
+  
+  // Create nodes
+  vis.forEach(n => {
+    const p = PROG[n.prog] || PROG["000"];
+    const el = document.createElement('div');
+    
+    const isMain = n.type === "main";
+    const isSub = n.type === "sub";
+    el.className = 'nd ' + (isMain ? 'M' : isSub ? 'U' : 'S');
+    el.style.left = n._x + 'px';
+    el.style.top = n._y + 'px';
+    el.style.width = (isSub ? COL_W - 16 : COL_W) + 'px';
+    
+    if (isMain) {
+      el.style.background = p.color;
+      el.style.color = p.textDark ? '#111' : '#fff';
+      el.style.borderColor = p.color;
+    } else if (isSub) {
+      el.style.background = p.color + '10';
+      el.style.color = p.color;
+      el.style.borderColor = p.color + '40';
+    } else {
+      el.style.background = p.color + '15';
+      el.style.color = '#e0e0e4';
+      el.style.borderColor = p.color + '50';
+    }
+    
+    const hasKids = n.children && n.children.length > 0;
+    const expHTML = hasKids ? `<span class="nd-exp" data-tog="${n.id}">${n._exp ? '▼' : '▶'} ${n.children.length}</span>` : '';
+    
+    el.innerHTML = `<div class="nd-in"><div class="nd-id">${n.id}</div><div class="nd-t">${n.title}</div>${n.short ? '<div class="nd-s">' + n.short + '</div>' : ''}${expHTML}</div>`;
+    el.dataset.id = n.id;
+    
+    el.addEventListener('click', e => { if (e.target.closest('[data-tog]')) return; openDetail(n.id); });
+    if (hasKids) {
+      el.querySelector('[data-tog]').addEventListener('click', e => { e.stopPropagation(); toggleExp(n.id); });
+    }
+    
+    if (n.id === selId) el.style.boxShadow = `0 0 0 3px ${p.color}80`;
+    
+    cv.appendChild(el);
+    els[n.id] = el;
+  });
+  
+  // Draw arrows
+  let maxX = 0, maxY = 0;
+  
+  ARROWS.forEach(({ from: f, to: t, type: tp, cond }) => {
+    const n1 = NODES[f], n2 = NODES[t];
+    if (!n1 || !n2 || !n1._vis || !n2._vis) return;
+    
+    const p1 = PROG[n1.prog] || PROG["000"];
+    const w1 = COL_W, w2 = COL_W;
+    const h1 = els[f] ? els[f].offsetHeight || 50 : 50;
+    const h2 = els[t] ? els[t].offsetHeight || 50 : 50;
+    
+    let pts = [];
+    const col = p1.color;
+    let sw = '2', dash = '', mkr = `url(#${p1.marker})`;
+    
+    if (tp === 'down') {
+      // Same column, straight down
+      const cx = n1._x + w1 / 2;
+      pts = [`${cx},${n1._y + h1}`, `${cx},${n2._y}`];
+      
+    } else if (tp === 'right') {
+      // Parent → sub-step to the right
+      const x1 = n1._x + w1, y1 = n1._y + h1 / 2;
+      const x2 = n2._x, y2 = n2._y + h2 / 2;
+      if (Math.abs(y1 - y2) < 5) {
+        pts = [`${x1},${y1}`, `${x2},${y2}`];
+      } else {
+        const xm = x1 + (x2 - x1) / 2;
+        pts = [`${x1},${y1}`, `${xm},${y1}`, `${xm},${y2}`, `${x2},${y2}`];
+      }
+      sw = '1.5';
+      
+    } else if (tp === 'return') {
+      // Sub returns down-left to next step
+      // From bottom of sub, go down then left to next step
+      const x1 = n2._x + w2 / 2;  // going TO node center-top
+      const xSub = n1._x + w1 / 2;
+      const y1 = n1._y + h1;
+      const y2 = n2._y;
+      // Go down from sub, then left to the main column step
+      pts = [`${xSub},${y1}`, `${xSub},${y2 - (V_GAP/2)}`, `${x1 + w1/4},${y2 - (V_GAP/2)}`];
+      // Actually simpler: just draw from sub's bottom to the left-side of next step
+      const xTarget = n2._x + w2;
+      const yMid = (y1 + n2._y) / 2;
+      pts = [`${xSub},${y1}`, `${xSub},${yMid}`, `${xTarget},${yMid}`, `${xTarget},${n2._y + h2/2}`];
+      // Wait, follow the reference: THEN arrow comes from right side, pointing left into the next step
+      // Let's do: from sub bottom-center, go down to midpoint, then left into target right-side
+      const yM = n2._y + h2 / 2;
+      pts = [`${xSub},${y1}`, `${xSub},${yM}`, `${n2._x + w2},${yM}`];
+      sw = '1.5'; dash = '4 2';
+      
+    } else if (tp === 'call') {
+      // Cross-column call: from right side of source, horizontal then down to target
+      const x1 = n1._x + w1, y1 = n1._y + h1 / 2;
+      const x2 = n2._x + w2 / 2, y2 = n2._y;
+      // Go right, then down (like the reference: right arrow then down to the new program block)
+      pts = [`${x1},${y1}`, `${x2},${y1}`, `${x2},${y2}`];
+      sw = '2.5';
+      
+    } else if (tp === 'loop') {
+      // Loop back: go left then up
+      const x1 = n1._x, y1 = n1._y + h1 / 2;
+      const x2 = n2._x, y2 = n2._y + h2 / 2;
+      const xL = Math.min(x1, x2) - 50;
+      pts = [`${x1},${y1}`, `${xL},${y1}`, `${xL},${y2}`, `${x2},${y2}`];
+      sw = '1.5'; dash = '6 3';
+    }
+    
+    if (!pts.length) return;
+    
+    const pl = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+    pl.setAttribute('points', pts.join(' '));
+    pl.setAttribute('fill', 'none');
+    pl.setAttribute('stroke', col);
+    pl.setAttribute('stroke-width', sw);
+    if (dash) pl.setAttribute('stroke-dasharray', dash);
+    pl.setAttribute('marker-end', mkr);
+    pl.setAttribute('opacity', tp === 'loop' ? '0.45' : '0.65');
+    svg.appendChild(pl);
+    
+    // Condition label
+    if (cond) {
+      // Place near the midpoint of the arrow
+      const mid = Math.floor(pts.length / 2);
+      const [mx, my] = pts[Math.min(mid, pts.length-1)].split(',').map(Number);
+      const lbl = document.createElement('div');
+      lbl.className = 'clab';
+      lbl.style.left = (mx + 4) + 'px';
+      lbl.style.top = (my - 14) + 'px';
+      lbl.style.background = col + '20';
+      lbl.style.color = col;
+      lbl.style.border = `1px solid ${col}35`;
+      lbl.textContent = cond;
+      cv.appendChild(lbl);
+    }
+    
+    pts.forEach(p => { const [x, y] = p.split(',').map(Number); maxX = Math.max(maxX, x + 80); maxY = Math.max(maxY, y + 80); });
+  });
+  
+  svg.setAttribute('width', maxX);
+  svg.setAttribute('height', maxY);
+  
+  // Legend
+  document.getElementById('leg').innerHTML = Object.entries(PROG).map(([k, v]) =>
+    `<div class="li"><div class="lc" style="background:${v.color}"></div><span>${v.label}</span></div>`
+  ).join('');
+  
+  document.getElementById('info').textContent = `${vis.length} / ${Object.keys(NODES).length}`;
+  updateMM();
+}
+
+function toggleExp(id) { const n = NODES[id]; if (n) { n._exp = !n._exp; renderAll(); } }
+function expandAll() { Object.values(NODES).forEach(n => { if (n.children && n.children.length) n._exp = true; }); renderAll(); }
+function collapseAll() { Object.values(NODES).forEach(n => n._exp = false); renderAll(); }
+
+// Detail panel
+function openDetail(id) {
+  const n = NODES[id]; if (!n) return;
+  const p = PROG[n.prog] || PROG["000"];
+  selId = id;
+  document.getElementById('dpId').textContent = n.id;
+  document.getElementById('dpId').style.color = p.color;
+  document.getElementById('dpTitle').textContent = n.title;
+  document.getElementById('dpTitle').style.color = p.color;
+  document.getElementById('dpFile').innerHTML = n.file ? '📁 ' + n.file : '';
+  let h = `<div class="dp-section"><div class="dp-label">Description</div><div class="dp-text">${n.detail||n.short||'—'}</div></div>`;
+  if (n.input||n.output) h += `<div class="dp-section"><div class="dp-label">I/O</div><div class="dp-io"><div><b>⬇ Input</b>${n.input||'—'}</div><div><b>⬆ Output</b>${n.output||'—'}</div></div></div>`;
+  if (n.code) h += `<div class="dp-section"><div class="dp-label">Code</div><div class="dp-code">${n.code.replace(/</g,'&lt;')}</div></div>`;
+  if (n.children && n.children.length) {
+    h += `<div class="dp-section"><div class="dp-label">Sous-elements (${n.children.length})</div><div class="dp-text">`;
+    n.children.forEach(c => h += `<span class="dp-nav" style="color:${p.color}" onclick="openDetail('${c.id}')">${c.id} — ${c.title}</span>`);
+    h += '</div></div>';
+  }
+  const from = ARROWS.filter(a=>a.from===id).map(a=>NODES[a.to]).filter(Boolean);
+  const to = ARROWS.filter(a=>a.to===id).map(a=>NODES[a.from]).filter(Boolean);
+  if (from.length||to.length) {
+    h += '<div class="dp-section"><div class="dp-label">Connexions</div><div class="dp-text">';
+    if (to.length) { h += '<b>← Depuis:</b><br>'; to.forEach(n2 => h += `<span class="dp-nav" style="color:${p.color}" onclick="openDetail('${n2.id}')">${n2.id} — ${n2.title}</span>`); }
+    if (from.length) { h += '<b>→ Vers:</b><br>'; from.forEach(n2 => h += `<span class="dp-nav" style="color:${p.color}" onclick="openDetail('${n2.id}')">${n2.id} — ${n2.title}</span>`); }
+    h += '</div></div>';
+  }
+  document.getElementById('dpBody').innerHTML = h;
+  document.getElementById('dp').classList.add('open');
+  renderAll();
+}
+function closeDetail() { document.getElementById('dp').classList.remove('open'); selId = null; renderAll(); }
+
+// Zoom/Pan
+function upd() { cv.style.transform = `translate(${panX}px,${panY}px) scale(${zoom})`; document.getElementById('zl').textContent = Math.round(zoom*100)+'%'; updateMM(); }
+cw.addEventListener('wheel', e => { e.preventDefault(); const r = cw.getBoundingClientRect(), mx = e.clientX-r.left, my = e.clientY-r.top, oz = zoom; zoom *= e.deltaY < 0 ? 1.12 : .89; zoom = Math.max(.04, Math.min(3, zoom)); panX = mx-(mx-panX)*(zoom/oz); panY = my-(my-panY)*(zoom/oz); upd(); });
+cw.addEventListener('mousedown', e => { if (e.target.closest('.nd')) return; dragging = true; dx0 = e.clientX-panX; dy0 = e.clientY-panY; cw.classList.add('drag'); });
+window.addEventListener('mousemove', e => { if (!dragging) return; panX = e.clientX-dx0; panY = e.clientY-dy0; upd(); });
+window.addEventListener('mouseup', () => { dragging = false; cw.classList.remove('drag'); });
+function zoomTo(z) { zoom = z; upd(); }
+function fitAll() {
+  let a=1e9,b=1e9,c=0,d=0;
+  Object.values(NODES).filter(n=>n._vis).forEach(n=>{a=Math.min(a,n._x);b=Math.min(b,n._y);c=Math.max(c,n._x+COL_W+20);d=Math.max(d,n._y+80)});
+  if(a>=1e9)return;
+  const w=cw.clientWidth,h=cw.clientHeight-44;
+  zoom=Math.min(w/(c-a+80),h/(d-b+80),1)*.9;
+  panX=-a*zoom+30;panY=-b*zoom+60;upd();
+}
+function doSearch(q) {
+  q=q.toLowerCase().trim();
+  Object.values(NODES).forEach(n=>{const el=els[n.id];if(!el)return;const m=!q||n.id.toLowerCase().includes(q)||n.title.toLowerCase().includes(q)||(n.short||'').toLowerCase().includes(q);el.style.opacity=m?1:.07;});
+}
+
+// Minimap
+function updateMM() {
+  const ctx=document.getElementById('mc').getContext('2d'),mw=400,mh=260;ctx.clearRect(0,0,mw,mh);
+  let a=1e9,b=1e9,c=0,d=0;const vis=Object.values(NODES).filter(n=>n._vis);
+  vis.forEach(n=>{a=Math.min(a,n._x);b=Math.min(b,n._y);c=Math.max(c,n._x+COL_W);d=Math.max(d,n._y+60)});
+  if(!vis.length)return;const sc=Math.min(mw/(c-a+60),mh/(d-b+60));
+  vis.forEach(n=>{const p=PROG[n.prog]||PROG["000"];ctx.fillStyle=p.color;ctx.globalAlpha=n.type==='main'?.9:.5;ctx.fillRect((n._x-a+30)*sc,(n._y-b+30)*sc,n.type==='main'?10:7,n.type==='main'?4:2)});
+  ctx.globalAlpha=1;
+  const v=document.getElementById('mv'),ww=cw.clientWidth,wh=cw.clientHeight;
+  v.style.left=Math.max(0,(-panX/zoom-a+30)*sc)+'px';v.style.top=Math.max(0,(-panY/zoom-b+30)*sc)+'px';
+  v.style.width=Math.min((ww/zoom)*sc,mw)+'px';v.style.height=Math.min((wh/zoom)*sc,mh)+'px';
+}
+document.getElementById('mm').addEventListener('click',e=>{const r=e.target.getBoundingClientRect();const mx=e.clientX-r.left,my=e.clientY-r.top;let a=1e9,b=1e9,c=0,d=0;const vis=Object.values(NODES).filter(n=>n._vis);vis.forEach(n=>{a=Math.min(a,n._x);b=Math.min(b,n._y);c=Math.max(c,n._x+COL_W);d=Math.max(d,n._y+60)});const mc=document.getElementById('mc'),sc=Math.min(400/(c-a+60),260/(d-b+60));panX=-(mx/mc.offsetWidth*400/sc+a-30)*zoom+cw.clientWidth/2;panY=-(my/mc.offsetHeight*260/sc+b-30)*zoom+cw.clientHeight/2;upd()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDetail()});
+
+// Boot
+renderAll();
+setTimeout(fitAll, 300);
+// ═══════════════════════════════════════════════════════════════════════
+// FLOW OVERLAY PANEL — Embedded flow diagrams (UI → JS → Backend)
+// ═══════════════════════════════════════════════════════════════════════
+
+const FLOW_PANELS = {};
+
+// ── Model LLM Flow ──
+(function(){
+const F={};
+function fn(id,col,cls,ico,nm,sub,vars,detail){F[id]={id,col,cls,ico,nm,sub,vars:vars||[],detail};}
+
+fn('browse',0,'ui','📂','Bouton Parcourir','<input type="file" accept=".gguf">',[{d:'out',t:'file.name →'}],
+{tp:'ui',ti:'📂 Bouton Parcourir',eli5:'Quand l\'utilisateur clique sur "Parcourir", le navigateur ouvre une fenêtre pour choisir un fichier .gguf (le cerveau de l\'IA). Le problème : le navigateur, pour des raisons de sécurité, ne dit PAS à l\'application OÙ se trouve le fichier — il donne seulement son nom. C\'est comme montrer une photo en disant "ça s\'appelle vacances.jpg" sans dire dans quel dossier elle est.',ss:[
+{h:'Élément HTML',code:'<label class="btn btn-ghost">\n  📂 Parcourir\n  <input type="file" accept=".gguf"\n    style="display:none"\n    onchange="<span class=hl>pickFile(this)</span>">\n</label>'},
+{h:'Comportement',p:'Le &lt;label&gt; déclenche le clic sur l\'input file caché. Le navigateur ouvre le sélecteur natif, filtré sur .gguf.'},
+{h:'Donnée produite',dt:[{k:'file.name',v:'"qwen-2.5-32b-q8.gguf"'},{k:'file.size',v:'34,359,738,368 bytes'},{k:'file.path',v:'⛔ INACCESSIBLE (sécurité navigateur)',bad:1}]},
+{h:'⚠ Limitation',p:'Aucun navigateur ne donne le chemin réel d\'un fichier. Restriction de sécurité universelle (Windows, Mac, Linux).'}]});
+
+fn('pickfile',1,'js','⚡','pickFile(input)','Écrit file.name dans #iPath',[{d:'in',t:'← file.name'},{d:'out',t:'#iPath = nom seul',e:1}],
+{tp:'js',ti:'⚡ pickFile(input)',eli5:'Cette fonction reçoit le nom du fichier choisi et l\'écrit dans le champ texte de la page. Elle remplit aussi le nom du modèle automatiquement. Le problème : elle écrit SEULEMENT le nom ("qwen-2.5-32b-q8.gguf") au lieu du chemin complet ("C:\\Users\\moi\\models\\qwen-2.5-32b-q8.gguf"). Plus tard, le programme ne trouvera pas le fichier car il ne sait pas dans quel dossier chercher.',ss:[
+{h:'Code source',code:'function <span class=hl>pickFile</span>(input){\n  if(input.files && input.files[0]){\n    let f = input.files[0];\n    <span class=er>$(\'iPath\').value = f.name;</span>\n    <span class=cm>// ↑ SEULEMENT le nom, pas le chemin !</span>\n    if(!$(\'iNewName\').value){\n      let n = f.name\n        .replace(\'.gguf\',\'\')\n        .replace(/-/g,\' \');\n      $(\'iNewName\').value = n;\n    }\n  }\n}'},
+{h:'Entrée',dt:[{k:'input.files[0]',v:'File { name: "qwen-2.5-32b-q8.gguf" }'}]},
+{h:'Sorties → DOM',dt:[{k:'#iPath',v:'"qwen-2.5-32b-q8.gguf" ← NOM SEUL',bad:1},{k:'#iNewName',v:'"qwen 2.5 32b q8" (auto)'}]},
+{h:'⚠ Bug',bug:'<code>f.name</code> ne contient que le nom. Le backend attend un chemin absolu complet. Cette valeur incomplète se propage dans toute la chaîne.'},
+{h:'✅ Correction',fix:'Le file picker ne peut PAS donner le chemin. Solutions :<br>• L\'utilisateur tape le chemin complet manuellement<br>• Ajouter un placeholder explicite et un warning visible<br>• Ou scanner un dossier models/ côté backend'}]});
+
+fn('ipath',0,'ui','📝','Input #iPath','Le champ qui stocke le chemin',[{d:'in',t:'← pickFile() / selectModel()'},{d:'out',t:'→ addModel() / startM()'}],
+{tp:'ui',ti:'📝 Input #iPath — Champ central',eli5:'C\'est LE champ le plus important de cette section. Il contient le chemin vers le fichier du modèle d\'IA. Tout passe par lui : parcourir, sélectionner, enregistrer, démarrer. Si ce champ contient juste un nom au lieu du chemin complet, tout échouera. C\'est comme écrire "Restaurant Italien" dans un GPS au lieu de l\'adresse complète.',ss:[
+{h:'HTML',code:'<input class="input" id="<span class=hl>iPath</span>"\n  placeholder="Chemin du .gguf">'},
+{h:'Écrit par 3 sources',dt:[{k:'pickFile()',v:'"qwen-2.5-32b-q8.gguf" (nom seul)',bad:1},{k:'selectModel()',v:'m.path depuis saved_models.json'},{k:'Manuel',v:'l\'utilisateur tape le chemin complet'}]},
+{h:'Lu par 2 fonctions',dt:[{k:'addModel()',v:'→ sauvé dans saved_models.json'},{k:'startM()',v:'→ envoyé au POST /api/model/start'}]},
+{h:'Attendu par le backend',p:'Chemin <b>absolu</b> : <code>C:\\Users\\moi\\models\\qwen.gguf</code>'}]});
+
+fn('sliders',0,'ui','🎚️','Sliders + Preset','#iNgl=35 · #iCtx=4096 · #iPreset',[{d:'out',t:'ngl, ctx, preset →'}],
+{tp:'ui',ti:'🎚️ Paramètres du modèle',eli5:'3 réglages : "GPU Layers" (0-80) = combien de couches du cerveau IA sont sur la carte graphique (plus c\'est haut, plus c\'est rapide mais ça consomme plus de mémoire). "Context" (2048-32768) = combien de texte l\'IA peut lire d\'un coup. "Preset" = quel type de modèle (Mistral ou Qwen). Ce sont des réglages techniques ajustés selon la carte graphique.',ss:[
+{h:'GPU Layers (#iNgl)',code:'<input type="range" id="<span class=hl>iNgl</span>" min="0" max="80" value="35">',p:'Couches du modèle chargées sur le GPU. Plus haut = plus rapide, plus de VRAM.'},
+{h:'Context (#iCtx)',code:'<input type="range" id="<span class=hl>iCtx</span>" min="2048" max="32768" step="1024" value="4096">'},
+{h:'Preset (#iPreset)',code:'<select id="<span class=hl>iPreset</span>">\n  <option value="mistral3_q4">Mistral 3 Q4</option>\n  <option value="qwen25_32b_q8">Qwen 2.5 32B Q8</option>\n</select>',p:'Clé dans <code>MODELS</code> de settings.py. Variable JS : <code>selMod</code>.'},
+{h:'Valeurs par défaut',dt:[{k:'ngl',v:'35'},{k:'ctx',v:'4096'},{k:'selMod',v:'"mistral3_q4"'}]}]});
+
+fn('savebtn',0,'ui','➕','Bouton Enregistrer','onclick="addModel()"',[],
+{tp:'ui',ti:'➕ Bouton Enregistrer',eli5:'Ce bouton sauvegarde la configuration actuelle (nom, chemin, réglages) pour la réutiliser plus tard. C\'est comme mettre un favori dans un navigateur web.',ss:[
+{h:'HTML',code:'<button onclick="<span class=hl>addModel()</span>">\n  ➕ Enregistrer ce modele\n</button>'},
+{h:'Rôle',p:'Déclenche la collecte de tous les champs (#iNewName, #iPath, #iNgl, #iCtx, #iPreset) et appelle addModel().'}]});
+
+fn('addmodel',1,'js','⚡','addModel()','Collecte → POST /api/models/add',[{d:'in',t:'← 5 champs UI'},{d:'out',t:'→ POST JSON'}],
+{tp:'js',ti:'⚡ addModel()',eli5:'Cette fonction ramasse toutes les valeurs des champs et les envoie au serveur Python pour les sauvegarder. C\'est comme remplir un formulaire et appuyer sur "Envoyer". Si le chemin est juste un nom de fichier, cette erreur est sauvegardée et sera reproduite à chaque fois.',ss:[
+{h:'Code',code:'async function <span class=hl>addModel</span>(){\n  let name = $(\'iNewName\').value.trim();\n  let path = <span class=er>$(\'iPath\').value.trim();</span>\n  if(!name){alert(\'Nom requis\');return}\n  if(!path){alert(\'Chemin requis\');return}\n  await api(\'/api/models/add\', {\n    name, <span class=er>path</span>,\n    ngl: +$(\'iNgl\').value,\n    ctx: +$(\'iCtx\').value,\n    preset: $(\'iPreset\').value\n  });\n  selectedModel = {name,path,...};\n  <span class=ok>$(\'bStart\').disabled = false;</span>\n  loadSavedModels();\n}'},
+{h:'Body envoyé',dt:[{k:'name',v:'"qwen 2.5 32b q8"'},{k:'path',v:'"qwen-2.5-32b-q8.gguf"',bad:1},{k:'ngl',v:'35'},{k:'ctx',v:'4096'},{k:'preset',v:'"qwen25_32b_q8"'}]},
+{h:'Après succès',dt:[{k:'selectedModel',v:'objet JS en mémoire'},{k:'#bStart',v:'disabled=false ← ACTIVÉ'}]}]});
+
+fn('hadd',2,'bk','🌐','h_models_add()','routes.py → sauvegarde JSON',[{d:'in',t:'← JSON body'},{d:'out',t:'→ saved_models.json'}],
+{tp:'bk',ti:'🌐 h_models_add() — routes.py',eli5:'Côté serveur Python, cette fonction reçoit les données et les écrit dans "saved_models.json". Elle ne vérifie pas si le chemin est correct — elle note tout sans poser de questions. C\'est comme un secrétaire qui note une adresse sans vérifier qu\'elle existe.',ss:[
+{h:'Code',code:'async def <span class=hl>h_models_add</span>(req):\n    d = await req.json()\n    name = d.get("name","").strip()\n    path = d.get("path","").strip()\n    if not name or not path:\n        return error 400\n    models = _load_saved_models()\n    models.append({\n      "name": name,\n      <span class=er>"path": path,</span> <span class=cm># stocké tel quel!</span>\n      "ngl": d.get("ngl",35),\n      "ctx": d.get("ctx",4096)\n    })\n    <span class=hl>_save_saved_models(models)</span>\n    return {"status":"ok"}'},
+{h:'⚠ Aucune validation',bug:'Ne vérifie <b>pas</b> que <code>Path(path).exists()</code>. Un chemin incomplet est sauvegardé sans erreur.'}]});
+
+fn('jsonfile',2,'file','💾','saved_models.json','Fichier JSON racine du projet',[{d:'in',t:'← write'},{d:'out',t:'→ loadSavedModels()'}],
+{tp:'file',ti:'💾 saved_models.json',eli5:'C\'est le fichier de sauvegarde qui se souvient des modèles enregistrés. Si un chemin incomplet y est stocké, il restera mauvais pour toujours — chaque fois qu\'on sélectionnera ce modèle, le même chemin cassé sera réutilisé.',ss:[
+{h:'Contenu stocké',code:'[\n  {\n    "name": "qwen 2.5 32b q8",\n    <span class=er>"path": "qwen-2.5-32b-q8.gguf",</span>\n    "ngl": 35, "ctx": 4096,\n    "preset": "qwen25_32b_q8"\n  }\n]'},
+{h:'Emplacement',p:'<code>BASE_DIR / saved_models.json</code> = racine du projet.'},
+{h:'Cycle de vie',p:'Écrit par <code>h_models_add()</code>. Lu par <code>h_models_list()</code> → JS <code>loadSavedModels()</code> → cartes.'}]});
+
+fn('card',0,'ui','🧠','Carte modèle (clic)','div.saved-model',[{d:'out',t:'JSON complet →'}],
+{tp:'ui',ti:'🧠 Carte modèle enregistré',eli5:'Chaque modèle sauvegardé apparaît comme une carte cliquable. Cliquer dessus re-remplit tous les champs automatiquement. Pratique pour switcher entre modèles, mais si le chemin stocké est incomplet, il sera re-rempli incomplet.',ss:[
+{h:'HTML généré',code:'<div class="saved-model"\n  onclick="<span class=hl>selectModel</span>(JSON.stringify(m))">\n  <div class="sm-name">qwen 2.5 32b q8</div>\n  <div class="sm-path">qwen-2.5-32b-q8.gguf</div>\n  <div class="sm-meta">Layers: 35 · Ctx: 4096</div>\n</div>'},
+{h:'Au clic',p:'Passe l\'objet modèle complet sérialisé en JSON à selectModel(). Le <code>path</code> vient de saved_models.json.'}]});
+
+fn('selectmodel',1,'js','⚡','selectModel(json)','→ #iPath, selMod, bStart',[{d:'in',t:'← JSON {path,ngl,ctx}'},{d:'out',t:'→ #iPath, selMod'}],
+{tp:'js',ti:'⚡ selectModel(json)',eli5:'Quand on clique sur une carte, cette fonction charge le profil sauvegardé : elle remet le chemin, les sliders, le preset, et active le bouton Démarrer. C\'est comme charger un profil dans un jeu vidéo.',ss:[
+{h:'Code',code:'function <span class=hl>selectModel</span>(jsonStr){\n  let m = JSON.parse(jsonStr);\n  selectedModel = m;\n  <span class=er>$(\'iPath\').value = m.path;</span>\n  <span class=cm>// ↑ Remet le path de saved_models.json</span>\n  $(\'iNgl\').value = m.ngl || 35;\n  $(\'iCtx\').value = m.ctx || 4096;\n  selMod = m.preset || \'mistral3_q4\';\n  <span class=ok>$(\'bStart\').disabled = false;</span>\n}'},
+{h:'Variables modifiées',dt:[{k:'selectedModel',v:'objet complet en mémoire JS'},{k:'#iPath',v:'m.path (potentiellement incomplet)',bad:1},{k:'selMod',v:'"qwen25_32b_q8"'},{k:'#bStart',v:'disabled=false ← CLIQUABLE'}]}]});
+
+fn('startbtn',0,'ui','🚀','Bouton Démarrer','#bStart → startM()',[],
+{tp:'ui',ti:'🚀 Bouton Démarrer',eli5:'Le gros bouton qui lance le modèle d\'IA. Grisé au départ, il ne devient cliquable qu\'après avoir sélectionné un modèle. Au clic, il passe en "⏳ Chargement..." et envoie tout au serveur. Si ça marche, il disparaît et est remplacé par "Arrêter".',ss:[
+{h:'HTML',code:'<button id="<span class=hl>bStart</span>"\n  onclick="<span class=hl>startM()</span>" disabled>\n  🚀 Demarrer\n</button>'},
+{h:'4 états',p:'① <b>disabled</b> (init) → ② <b>enabled</b> (select/add) → ③ <b>"⏳ Chargement..."</b> (clic) → ④ <b>caché</b> si OK'}]});
+
+fn('startm',1,'js','⚡','startM()','5 champs → POST /api/model/start',[{d:'in',t:'← #iPath, selMod, #iNgl, #iCtx'},{d:'out',t:'→ POST body 5 champs'}],
+{tp:'js',ti:'⚡ startM() — Fonction critique',eli5:'C\'est la fonction qui dit au serveur "lance le modèle avec ces paramètres". Elle prend le chemin, les réglages, et envoie tout. Si le chemin est juste un nom de fichier, le serveur répondra "fichier introuvable" et une alerte d\'erreur s\'affichera.',ss:[
+{h:'Code',code:'async function <span class=hl>startM</span>(){\n  let p = $(\'iPath\').value.trim();\n  if(!p && selectedModel)\n    p = selectedModel.path;\n  if(!p){alert(\'Selectionnez\');return}\n  $(\'bStart\').disabled = true;\n  $(\'bStart\').textContent = \'⏳ Chargement...\';\n  let r = await api(\'/api/model/start\',{\n    model:      <span class=hl>selMod</span>,\n    model_path: <span class=er>p</span>,\n    gpu_layers: +$(\'iNgl\').value,\n    ctx_size:   +$(\'iCtx\').value,\n    llama_server_path: $(\'iLlama\').value\n  });\n  if(r.error){\n    <span class=er>alert(\'Erreur: \' + r.error);</span>\n  } else {\n    $(\'bStart\').style.display = \'none\';\n    $(\'bStop\').style.display = \'inline-flex\';\n    <span class=ok>$(\'bScan\').disabled = false;</span>\n  }\n}'},
+{h:'Body POST envoyé',dt:[{k:'model',v:'"qwen25_32b_q8"'},{k:'model_path',v:'"qwen-2.5-32b-q8.gguf"',bad:1},{k:'gpu_layers',v:'35'},{k:'ctx_size',v:'4096'},{k:'llama_server_path',v:'"" (auto)'}]}]});
+
+fn('hstart',2,'bk','🌐','h_start_model()','routes.py → start_llama()',[{d:'in',t:'← body 5 champs'},{d:'out',t:'→ start_llama()'}],
+{tp:'bk',ti:'🌐 h_start_model() — routes.py',eli5:'Le "réceptionniste" côté serveur. Il reçoit la demande, vérifie que le type de modèle est connu, et transmet à start_llama(). Il ne vérifie pas lui-même si le fichier existe.',ss:[
+{h:'Code',code:'async def <span class=hl>h_start_model</span>(req):\n    d = await req.json()\n    mk = d.get("model")\n    mp = d.get("model_path","").strip()\n    ngl = int(d.get("gpu_layers",35))\n    ctx = int(d.get("ctx_size",4096))\n    lp = d.get("llama_server_path","")\n    if mk not in MODELS: return err 400\n    if not mp: return err 400\n    <span class=hl>r = await start_llama(mk,mp,ngl,ctx,lp)</span>\n    if "error" in r: <span class=er>return err 500</span>\n    return {"status":"ok"}'},
+{h:'Validation',p:'Vérifie <code>mk in MODELS</code> et <code>mp</code> non vide. Ne vérifie <b>PAS</b> l\'existence du fichier.'}]});
+
+fn('sllama',2,'err','💥','start_llama() — CRASH','File not found: qwen...gguf',[{d:'in',t:'← path partiel'},{d:'out',t:'→ {"error"}',e:1}],
+{tp:'bk',ti:'💥 start_llama() — llama_manager.py',eli5:'C\'est ICI que tout casse. Cette fonction doit démarrer le serveur d\'IA. Sa première action : vérifier que le fichier existe. Elle reçoit "qwen-2.5-32b-q8.gguf" (juste le nom) et cherche dans le dossier du projet — mais le fichier est ailleurs. Résultat : "File not found" immédiat. Les 5 autres étapes ne sont jamais exécutées.',ss:[
+{h:'Code (6 étapes)',code:'async def <span class=hl>start_llama</span>(model_key, model_path,\n            gpu_layers, ctx_size, llama_path=""):\n\n  <span class=cm># ÉTAPE 1: VÉRIFIER LE FICHIER</span>\n  <span class=er>if not Path(model_path).exists():</span>\n    <span class=er>return {"error":f"File not found: {model_path}"}</span>\n    <span class=cm># ↑↑↑ CRASH ICI ↑↑↑</span>\n    <span class=cm># Path("qwen-2.5-32b-q8.gguf")</span>\n    <span class=cm># cherche dans CWD = dossier du projet</span>\n\n  <span class=cm># ÉTAPE 2: STOP ANCIEN</span>\n  await stop_llama()\n  app_state.active_model = model_key\n\n  <span class=cm># ÉTAPE 3: TROUVER EXE</span>\n  exe = llama_path or find_llama_server()\n  if not exe: return {"error":"not found"}\n\n  <span class=cm># ÉTAPE 4: COMMANDE</span>\n  cmd = [exe, "-m", model_path,\n    "--host","127.0.0.1","--port","8081",\n    "-ngl",str(gpu_layers),\n    "-c",str(ctx_size)]\n\n  <span class=cm># ÉTAPE 5: SUBPROCESS</span>\n  app_state.llama_process = Popen(cmd)\n\n  <span class=cm># ÉTAPE 6: HEALTH CHECK 60s</span>\n  for i in range(60):\n    GET http://127.0.0.1:8081/health\n    <span class=ok>if 200: return {"status":"ok"}</span>'},
+{h:'⚠ Le bug',bug:'<code>Path("qwen-2.5-32b-q8.gguf").exists()</code> cherche dans le <b>CWD</b> = dossier du projet.<br>Le .gguf est dans <code>C:\\Users\\...\\models\\</code><br>→ exists() = False → "File not found"'},
+{h:'✅ Corrections',fix:'<b>A)</b> pickFile() : placeholder "Collez le chemin absolu complet"<br><b>B)</b> start_llama() : si pas absolu, chercher dans HOME/models, Downloads<br><b>C)</b> h_models_add() : valider Path(path).exists() à l\'enregistrement'}]});
+
+fn('state',2,'ok','💾','app_state actualisé','is_running=True',[{d:'out',t:'→ /api/status'}],
+{tp:'bk',ti:'💾 app_state après succès',eli5:'Si le fichier existait au bon endroit, le programme note que le modèle est actif. Un processus llama-server tourne maintenant en arrière-plan sur le port 8081, comme un moteur qui attend qu\'on lui envoie du texte.',ss:[
+{h:'Champs modifiés',dt:[{k:'active_model',v:'"qwen25_32b_q8"'},{k:'model_path',v:'"C:\\...\\qwen.gguf" (complet)'},{k:'is_running',v:'True ✅'},{k:'llama_process',v:'Popen (PID actif)'}]},
+{h:'Processus lancé',code:'llama-server -m "C:\\...\\qwen.gguf" \\\n  --host 127.0.0.1 --port 8081 \\\n  -ngl 35 -c 4096 --threads 8'},
+{h:'Prêt pour',p:'<code>query_llm()</code> peut envoyer des requêtes sur <code>http://127.0.0.1:8081/completion</code>.'}]});
+
+fn('poll',1,'js','🔄','poll() — toutes les 3s','GET /api/status → met à jour UI',[{d:'in',t:'← server_running'},{d:'out',t:'→ dot, VRAM, bScan'}],
+{tp:'js',ti:'🔄 poll() — boucle de mise à jour',eli5:'Toutes les 3 secondes, l\'interface demande au serveur "quel est l\'état ?". Le serveur répond avec plein d\'infos (modèle actif, VRAM, etc.) et l\'interface met à jour tous les indicateurs visuels. C\'est comme un tableau de bord de voiture qui se rafraîchit en permanence.',ss:[
+{h:'Code',code:'async function <span class=hl>poll</span>(){\n  let d = await api(\'/api/status\');\n  if(d.model.server_running){\n    <span class=ok>dot.className = \'dot dot-on\';</span>\n    st.textContent = \'En ligne\';\n    mChip.textContent = d.model.name;\n    <span class=ok>$(\'bScan\').disabled = false;</span>\n  }\n}\n<span class=hl>setInterval(poll, 3000);</span>'},
+{h:'UI mise à jour',dt:[{k:'dot',v:'vert + pulse'},{k:'sStatus',v:'"En ligne"'},{k:'mChip',v:'"Qwen 2.5 32B Q8"'},{k:'VRAM',v:'barre remplie'},{k:'#bScan',v:'disabled=false ← SCAN OK'}]}]});
+
+fn('uigreen',0,'ok','🟢','UI "En ligne"','Dot vert, Scan débloqué',[],
+{tp:'ui',ti:'🟢 Interface en état actif',eli5:'L\'utilisateur voit que tout fonctionne : point vert, nom du modèle, barre VRAM remplie, et surtout le bouton "Lancer le scan" est maintenant cliquable. Le modèle est prêt. Direction l\'onglet "Mission" pour lancer la recherche.',ss:[
+{h:'Ce que voit l\'utilisateur',p:'• <b>Dot vert pulsant</b> dans le header<br>• <b>"En ligne"</b> à côté<br>• <b>Nom du modèle</b> dans le chip<br>• <b>Barre VRAM</b> remplie (gradient vert→bleu→violet)<br>• Bouton <b>🚀 Démarrer</b> caché → <b>⏹ Arrêter</b> visible<br>• Bouton <b>▶ Lancer</b> activé dans Mission'}]});
+
+const SEC = {'1':'#2563eb','2':'#16a34a','3':'#22d3ee','4':'#ef4444','5':'#16a34a'};
+const COLS_C = ['#2563eb','#d97706','#16a34a'];
+const COLS_CL = ['fc-ui','fc-js','fc-bk'];
+const FND_CL = {ui:'fnd-ui',js:'fnd-js',bk:'fnd-bk',err:'fnd-err',ok:'fnd-ok',file:'fnd-file'};
+
+const LAYOUT = [
+  {s:'1',t:'Sélection du fichier .gguf',d:'Parcourir → pickFile() → #iPath'},
+  {r:['browse',null,null]},{c:{f:0,t:1}},
+  {r:[null,'pickfile',null]},{c:{f:1,t:0}},
+  {r:['ipath',null,null]},{r:['sliders',null,null]},
+  {s:'2',t:'Enregistrer le modèle',d:'addModel() → API → saved_models.json'},
+  {r:['savebtn',null,null]},{c:{f:0,t:1}},
+  {r:[null,'addmodel',null]},{c:{f:1,t:2}},
+  {r:[null,null,'hadd']},{c:{f:2,t:2}},
+  {r:[null,null,'jsonfile']},
+  {s:'3',t:'Sélectionner un modèle sauvegardé',d:'Carte → selectModel() → #iPath'},
+  {r:['card',null,null]},{c:{f:0,t:1}},
+  {r:[null,'selectmodel',null]},
+  {s:'4',t:'🚀 Démarrer — chaîne qui casse',d:'startM() → API → start_llama() → crash'},
+  {r:['startbtn',null,null]},{c:{f:0,t:1}},
+  {r:[null,'startm',null]},{c:{f:1,t:2}},
+  {r:[null,null,'hstart']},{c:{f:2,t:2}},
+  {r:[null,null,'sllama']},
+  {s:'5',t:'✅ Succès (chemin correct)',d:'app_state → poll() → UI verte'},
+  {r:[null,null,'state']},{c:{f:2,t:1}},
+  {r:[null,'poll',null]},{c:{f:1,t:0}},
+  {r:['uigreen',null,null]},
+];
+
+FLOW_PANELS['model_llm'] = {title:'Flow : Modèle LLM (UI → JS → Backend)', nodes:F, layout:LAYOUT, sec:SEC, colColors:COLS_C, colCls:COLS_CL, fndCls:FND_CL};
+})();
+
+// ── VRAM Monitoring Flow ──
+(function(){
+const F={};
+function fn(id,col,cls,ico,nm,sub,vars,detail){F[id]={id,col,cls,ico,nm,sub,vars:vars||[],detail};}
+
+fn('vbar',0,'ui','📊','Barre VRAM','#vFill + #vTxt',[{d:'in',t:'← poll() données GPU'}],
+{tp:'ui',ti:'📊 Barre VRAM et métriques',eli5:'C\'est la barre de progression colorée qui montre combien de mémoire GPU est utilisée. Elle change de couleur selon le remplissage : vert si peu utilisée, bleu-violet au milieu, et rouge vif si on dépasse 85%. En dessous, 4 chiffres montrent le détail : utilisation GPU, CPU, RAM, et mémoire libre. Le tout se rafraîchit automatiquement toutes les 3 secondes.',ss:[
+{h:'HTML',code:'<div class="gpu-track">\n  <div class="gpu-fill" id="<span class=hl>vFill</span>" style="width:0%"></div>\n</div>\n<span class="gpu-val" id="<span class=hl>vTxt</span>">0 / 0 MB</span>\n\n<span>GPU: <b id="<span class=hl>gUtil</span>">0%</b></span>\n<span>CPU: <b id="<span class=hl>gCpu</span>">0%</b></span>\n<span>RAM: <b id="<span class=hl>gRam</span>">0%</b></span>\n<span>Libre: <b id="<span class=hl>gFree</span>">0 MB</b></span>'},
+{h:'5 éléments mis à jour',dt:[{k:'#vFill',v:'width en % + classe "hot" si >85%'},{k:'#vTxt',v:'"8200 / 12288 MB"'},{k:'#gUtil',v:'"67%" (GPU utilisation)'},{k:'#gCpu',v:'"23%" (CPU)'},{k:'#gRam',v:'"45%" (RAM système)'},{k:'#gFree',v:'"4088 MB" (VRAM libre)'}]},
+{h:'CSS gradient',p:'La barre utilise un gradient vert→bleu→violet. Quand >85%, la classe <code>.hot</code> passe en rouge avec une animation de pulse.'}]});
+
+fn('poll_gpu',1,'js','🔄','poll() — section GPU','Extrait d.gpu + d.system',[{d:'in',t:'← GET /api/status'},{d:'out',t:'→ #vFill, #vTxt, #gUtil...'}],
+{tp:'js',ti:'🔄 poll() — mise à jour VRAM',eli5:'La fonction poll() est appelée toutes les 3 secondes. Elle demande au serveur l\'état complet du système. Dans la réponse, la section "gpu" contient les métriques VRAM et la section "system" les infos CPU/RAM. Poll() calcule le pourcentage de remplissage et met à jour la barre et les 4 compteurs.',ss:[
+{h:'Code (extrait pertinent)',code:'async function <span class=hl>poll</span>(){\n  let d = await api(\'/api/status\');\n  <span class=cm>// ... autres updates ...</span>\n  <span class=cm>// GPU section:</span>\n  let g = d.<span class=hl>gpu</span> || {};\n  let pct = g.total_mb > 0\n    ? g.used_mb / g.total_mb * 100 : 0;\n  $(\' vTxt\').textContent =\n    Math.round(g.used_mb||0)+\' / \'+\n    Math.round(g.total_mb||0)+\' MB\';\n  let vf = $(\'vFill\');\n  vf.style.width = pct + \'%\';\n  <span class=hl>vf.className = \'gpu-fill\'+(pct>85?\' hot\':\'\');</span>\n  $(\'gUtil\').textContent =\n    Math.round(g.gpu_util||0)+\'%\';\n  $(\'gCpu\').textContent =\n    Math.round(d.system.cpu_percent||0)+\'%\';\n  $(\'gRam\').textContent =\n    d.system.ram_percent+\'%\';\n  $(\'gFree\').textContent =\n    Math.round(g.free_mb||0)+\' MB\';\n}\n<span class=hl>setInterval(poll, 3000);</span>'},
+{h:'Données utilisées',dt:[{k:'d.gpu.used_mb',v:'8200 (VRAM utilisée)'},{k:'d.gpu.total_mb',v:'12288 (VRAM totale)'},{k:'d.gpu.free_mb',v:'4088 (VRAM libre)'},{k:'d.gpu.gpu_util',v:'67 (utilisation GPU %)'},{k:'d.system.cpu_percent',v:'23'},{k:'d.system.ram_percent',v:'45'}]}]});
+
+fn('hstatus',2,'bk','🌐','h_status()','GET /api/status',[{d:'in',t:'← poll() toutes les 3s'},{d:'out',t:'→ JSON complet'}],
+{tp:'bk',ti:'🌐 h_status() — routes.py',eli5:'C\'est le handler principal du serveur. À chaque appel (toutes les 3 secondes !), il collecte les données GPU via nvidia-smi, les infos système via psutil, l\'état du modèle, et la progression du scan. Il garde aussi un historique des 300 dernières mesures VRAM. C\'est le point central qui alimente TOUT le tableau de bord.',ss:[
+{h:'Code',code:'async def <span class=hl>h_status</span>(req):\n    <span class=hl>gpu = get_gpu_info()</span>\n    <span class=hl>si = get_system_info()</span>\n    app_state.vram_history.append({\n      "t":time.time(),\n      "used":gpu["used_mb"],\n      "total":gpu["total_mb"]\n    })\n    return web.json_response({\n      "model": {active, name, server_running},\n      <span class=hl>"gpu": gpu,</span>\n      <span class=hl>"system": si,</span>\n      "scan": {running, progress},\n      "vram_history": last_60,\n      "llama_server_found": path\n    })'},
+{h:'Appels internes',dt:[{k:'get_gpu_info()',v:'→ gpu_monitor.py'},{k:'get_system_info()',v:'→ gpu_monitor.py'},{k:'find_llama_server()',v:'→ llama_manager.py'}]}]});
+
+fn('gpumon',2,'bk','🔧','get_gpu_info()','gpu_monitor.py → nvidia-smi',[{d:'in',t:'← h_status()'},{d:'out',t:'→ dict {used, total, free, util}'}],
+{tp:'bk',ti:'🔧 get_gpu_info() — gpu_monitor.py',eli5:'Cette fonction interroge la carte graphique NVIDIA en utilisant l\'outil nvidia-smi (un utilitaire fourni par NVIDIA). Elle lui demande 4 choses : combien de mémoire est utilisée, combien il y en a au total, combien est libre, et le pourcentage d\'utilisation du GPU. Si nvidia-smi n\'est pas trouvé (pas de GPU NVIDIA), elle utilise la RAM système en fallback.',ss:[
+{h:'Code',code:'def <span class=hl>get_gpu_info</span>() -> dict:\n  for smi in ["nvidia-smi",\n    "C:\\\\Windows\\\\System32\\\\nvidia-smi.exe",\n    "C:\\\\Program Files\\\\NVIDIA...\\\\nvidia-smi.exe"]:\n    try:\n      r = subprocess.run([smi,\n        <span class=hl>"--query-gpu=memory.used,memory.total,</span>\n        <span class=hl> memory.free,utilization.gpu"</span>,\n        "--format=csv,noheader,nounits"],\n        capture_output=True, timeout=5)\n      if r.returncode == 0:\n        p = r.stdout.strip().split(",")\n        return {\n          <span class=ok>"used_mb": float(p[0]),</span>\n          <span class=ok>"total_mb": float(p[1]),</span>\n          <span class=ok>"free_mb": float(p[2]),</span>\n          <span class=ok>"gpu_util": float(p[3]),</span>\n          "available": True\n        }\n    except: continue\n  <span class=cm># Fallback: RAM système</span>\n  mem = psutil.virtual_memory()\n  return {used_mb, total_mb, free_mb,\n    "available": False,\n    "note": "GPU non detecte - RAM systeme"}'},
+{h:'Valeur retournée',dt:[{k:'used_mb',v:'8200.0'},{k:'total_mb',v:'12288.0'},{k:'free_mb',v:'4088.0'},{k:'gpu_util',v:'67.0'},{k:'available',v:'True'}]}]});
+
+fn('purgebtn',0,'ui','🧹','Bouton Vider VRAM','onclick="purgeVram()"',[{d:'out',t:'→ POST /api/vram/purge'}],
+{tp:'ui',ti:'🧹 Bouton Vider VRAM',eli5:'Ce bouton d\'urgence tue tous les processus llama-server qui tournent et tente de réinitialiser la carte graphique pour libérer la mémoire. Utile quand le modèle est bloqué ou qu\'on veut récupérer la VRAM sans redémarrer. Il demande confirmation avant d\'agir.',ss:[
+{h:'Code JS',code:'async function <span class=hl>purgeVram</span>(){\n  if(!confirm(\'Tuer llama + liberer VRAM?\'))\n    return;\n  btn.textContent = \'🧹 Nettoyage...\';\n  let r = await api(\'/api/vram/purge\', {});\n  <span class=cm>// Reset UI buttons</span>\n  $(\'bStart\').style.display = \'inline-flex\';\n  $(\'bStop\').style.display = \'none\';\n  if(r.gpu) alert(\'VRAM: \' +\n    Math.round(r.gpu.used_mb) + \' / \' +\n    Math.round(r.gpu.total_mb) + \' MB\');\n}'}]});
+
+fn('hpurge',2,'bk','🌐','h_vram_purge()','routes.py → kill + reset',[{d:'in',t:'← POST /api/vram/purge'},{d:'out',t:'→ {gpu: updated info}'}],
+{tp:'bk',ti:'🌐 h_vram_purge() — routes.py',eli5:'Côté serveur, cette fonction fait un grand ménage en 3 étapes : d\'abord elle arrête proprement le llama-server du programme, puis elle tue de force TOUS les processus llama qui pourraient traîner sur la machine (taskkill /F), et enfin elle tente un nvidia-smi --gpu-reset pour forcer la carte graphique à libérer sa mémoire. Après, elle remesure la VRAM pour confirmer.',ss:[
+{h:'Code',code:'async def <span class=hl>h_vram_purge</span>(req):\n    <span class=cm># 1) Stop notre llama-server</span>\n    <span class=hl>await stop_llama()</span>\n    \n    <span class=cm># 2) Kill tous les llama-server</span>\n    for name in ["llama-server.exe",\n                 "llama-cli.exe"]:\n      subprocess.run(\n        ["taskkill","/F","/IM",name])\n    \n    <span class=cm># 3) nvidia-smi reset</span>\n    subprocess.run(\n      <span class=hl>["nvidia-smi","--gpu-reset"]</span>)\n    \n    <span class=cm># 4) Re-mesurer</span>\n    gpu = get_gpu_info()\n    return {"status":"ok","gpu":gpu}'},
+{h:'Effets',dt:[{k:'stop_llama()',v:'app_state.is_running=False'},{k:'taskkill',v:'tous les llama-server tués'},{k:'gpu-reset',v:'VRAM libérée (si supporté)'},{k:'retour',v:'nouvelles métriques GPU'}]}]});
+
+const SEC={'1':'#2563eb','2':'#16a34a'};
+const COLS_C=['#2563eb','#d97706','#16a34a'];
+const COLS_CL=['fc-ui','fc-js','fc-bk'];
+const FND_CL={ui:'fnd-ui',js:'fnd-js',bk:'fnd-bk',err:'fnd-err',ok:'fnd-ok',file:'fnd-file'};
+
+const LAYOUT=[
+  {s:'1',t:'Monitoring automatique (toutes les 3s)',d:'poll() → GET /api/status → nvidia-smi → UI'},
+  {r:['vbar',null,null]},{c:{f:0,t:1}},
+  {r:[null,'poll_gpu',null]},{c:{f:1,t:2}},
+  {r:[null,null,'hstatus']},{c:{f:2,t:2}},
+  {r:[null,null,'gpumon']},
+  {s:'2',t:'Purge manuelle (bouton)',d:'purgeVram() → kill + nvidia-smi reset'},
+  {r:['purgebtn',null,null]},{c:{f:0,t:2}},
+  {r:[null,null,'hpurge']},
+];
+FLOW_PANELS['vram'] = {title:'Flow : Monitoring VRAM (UI → JS → Backend)', nodes:F, layout:LAYOUT, sec:SEC, colColors:COLS_C, colCls:COLS_CL, fndCls:FND_CL};
+})();
+
+// ── Playwright Check Flow ──
+(function(){
+const F={};
+function fn(id,col,cls,ico,nm,sub,vars,detail){F[id]={id,col,cls,ico,nm,sub,vars:vars||[],detail};}
+
+fn('checkbtn',0,'ui','🔍','Bouton Vérifier','onclick="checkTools()"',[{d:'out',t:'→ GET /api/check-tools'}],
+{tp:'ui',ti:'🔍 Bouton Vérifier l\'installation',eli5:'Un simple bouton que l\'utilisateur clique pour vérifier que les outils de navigation web sont bien installés. L\'application a besoin de Playwright (une librairie qui contrôle un vrai navigateur web) et de Firefox pour aller chercher des pages web de façon discrète, comme un vrai humain.',ss:[
+{h:'HTML',code:'<button onclick="<span class=hl>checkTools()</span>">\n  🔍 Verifier l\'installation\n</button>'},
+{h:'Rôle',p:'Lance la vérification de Playwright et Firefox. Pendant la vérification, affiche "Vérification..." en jaune.'}]});
+
+fn('checktools',1,'js','⚡','checkTools()','GET /api/check-tools → affiche ✅/❌',[{d:'in',t:'← click'},{d:'out',t:'→ GET + update #toolsStatus'}],
+{tp:'js',ti:'⚡ checkTools()',eli5:'Cette fonction envoie une demande au serveur "est-ce que Playwright et Firefox sont installés ?". Le serveur teste vraiment en essayant de lancer Firefox. Puis la fonction affiche les résultats : ✅ en vert si c\'est installé, ❌ en rouge avec la commande à taper si ça manque.',ss:[
+{h:'Code complet',code:'async function <span class=hl>checkTools</span>(){\n  $(\'toolsStatus\').innerHTML =\n    \'<span style="color:var(--amber)">\' +\n    \'Verification...</span>\';\n  let r = await api(\'/api/check-tools\');\n  let html = \'\';\n  if(r.<span class=hl>playwright_installed</span>)\n    html += \'<div style="color:var(--green)">\' +\n      <span class=ok>\'✅ Playwright installe\'</span>+\'</div>\';\n  else\n    html += \'<div style="color:var(--red)">\' +\n      <span class=er>\'❌ Playwright non installe\'</span> +\n      \' — pip install playwright</div>\';\n  if(r.<span class=hl>firefox_installed</span>)\n    html += \'<div style="color:var(--green)">\' +\n      <span class=ok>\'✅ Firefox disponible\'</span>+\'</div>\';\n  else\n    html += \'<div style="color:var(--red)">\' +\n      <span class=er>\'❌ Firefox non disponible\'</span> +\n      \' — playwright install firefox</div>\';\n  $(\'toolsStatus\').innerHTML = html;\n}'},
+{h:'Réponse attendue',dt:[{k:'playwright_installed',v:'true/false'},{k:'firefox_installed',v:'true/false'},{k:'error',v:'"" ou message d\'erreur'}]}]});
+
+fn('hcheck',2,'bk','🌐','h_check_tools()','routes.py → browser.py',[{d:'in',t:'← GET /api/check-tools'},{d:'out',t:'→ JSON {playwright, firefox}'}],
+{tp:'bk',ti:'🌐 h_check_tools() — routes.py',eli5:'Le handler côté serveur délègue à la fonction check_browser_available() du module browser.py. C\'est juste un relais simple.',ss:[
+{h:'Code',code:'async def <span class=hl>h_check_tools</span>(req):\n    from web_search...browser import \\\n      check_browser_available\n    <span class=hl>info = check_browser_available()</span>\n    return web.json_response(info)'}]});
+
+fn('browsercheck',2,'bk','🔧','check_browser_available()','browser.py → lance Firefox',[{d:'in',t:'← h_check_tools()'},{d:'out',t:'→ {playwright, firefox, error}'}],
+{tp:'bk',ti:'🔧 check_browser_available() — browser.py',eli5:'C\'est ici que la vraie vérification se passe. D\'abord, le programme essaie d\'importer la librairie Playwright. Si ça marche, il essaie ensuite de lancer Firefox en mode "headless" (invisible). Si Firefox se lance et se ferme sans erreur, c\'est bon. Sinon, il note l\'erreur et indique quelle commande taper pour installer ce qui manque.',ss:[
+{h:'Code complet',code:'def <span class=hl>check_browser_available</span>() -> Dict:\n    info = {\n      "playwright_installed": False,\n      "firefox_installed": False,\n      "error": ""\n    }\n    <span class=cm># Test 1: import playwright</span>\n    try:\n      import playwright\n      <span class=ok>info["playwright_installed"] = True</span>\n    except ImportError:\n      info["error"] = "pip install playwright"\n      return info\n\n    <span class=cm># Test 2: launch Firefox</span>\n    try:\n      from playwright.sync_api import sync_playwright\n      with sync_playwright() as p:\n        <span class=hl>browser = p.firefox.launch(headless=True)</span>\n        browser.close()\n        <span class=ok>info["firefox_installed"] = True</span>\n    except Exception as e:\n      info["error"] = f"Firefox: {str(e)[:100]}"\n\n    return info'},
+{h:'3 issues possibles',dt:[{k:'ImportError',v:'Playwright pas installé → pip install playwright'},{k:'Firefox manquant',v:'→ python -m playwright install firefox'},{k:'Autre erreur',v:'message affiché dans #toolsStatus'}]}]});
+
+fn('toolsstatus',0,'ui','📋','#toolsStatus','Affiche ✅/❌ résultats',[{d:'in',t:'← checkTools() résultat'}],
+{tp:'ui',ti:'📋 Zone de résultat #toolsStatus',eli5:'C\'est la zone de texte qui affiche les résultats de la vérification. Avant le test, elle affiche "Vérification..." en jaune. Après, elle montre une ou deux lignes : ✅ en vert si OK, ou ❌ en rouge avec la commande exacte à taper dans le terminal pour installer ce qui manque.',ss:[
+{h:'Affichage possible',code:'<span class=ok>✅ Playwright installe</span>\n<span class=ok>✅ Firefox disponible</span>\n\n<span class=cm>OU :</span>\n\n<span class=ok>✅ Playwright installe</span>\n<span class=er>❌ Firefox non disponible</span>\n<span class=er>   → playwright install firefox</span>'}]});
+
+const SEC={'1':'#2563eb'};
+const COLS_C=['#2563eb','#d97706','#16a34a'];
+const COLS_CL=['fc-ui','fc-js','fc-bk'];
+const FND_CL={ui:'fnd-ui',js:'fnd-js',bk:'fnd-bk',err:'fnd-err',ok:'fnd-ok',file:'fnd-file'};
+
+const LAYOUT=[
+  {s:'1',t:'Vérification Playwright + Firefox',d:'checkTools() → API → import + launch → ✅/❌'},
+  {r:['checkbtn',null,null]},{c:{f:0,t:1}},
+  {r:[null,'checktools',null]},{c:{f:1,t:2}},
+  {r:[null,null,'hcheck']},{c:{f:2,t:2}},
+  {r:[null,null,'browsercheck']},{c:{f:2,t:1}},
+  {r:[null,'checktools',null]},{c:{f:1,t:0}},
+  {r:['toolsstatus',null,null]},
+];
+FLOW_PANELS['playwright'] = {title:'Flow : Vérification Playwright (UI → JS → Backend)', nodes:F, layout:LAYOUT, sec:SEC, colColors:COLS_C, colCls:COLS_CL, fndCls:FND_CL};
+})();
+
+// ── Render a flow panel ──
+let flowActiveNode = null;
+
+function openFlowPanel(panelId) {
+  const panel = FLOW_PANELS[panelId]; if(!panel) return;
+  const {title, nodes, layout, sec, colColors, colCls, fndCls} = panel;
+  flowActiveNode = null;
+
+  // Build left HTML
+  let h = '';
+  h += `<div class="flow-topbar"><span style="font-size:17px;margin-right:4px">🔗</span><h2>${title}</h2><button class="ft-close" onclick="closeFlowPanel()">✕</button></div>`;
+  h += '<div class="flow-colhdrs"><div class="flow-ch fch-ui">🖥 Interface</div><div class="flow-ch fch-js">⚡ JavaScript</div><div class="flow-ch fch-bk">🐍 Backend</div></div>';
+
+  for(const item of layout){
+    if(item.s){
+      h += `<div class="flow-sdiv"><div class="flow-sdiv-n" style="background:${sec[item.s]}">${item.s}</div><div class="flow-sdiv-b"><div class="flow-sdiv-t">${item.t}</div><div class="flow-sdiv-d">${item.d}</div></div></div>`;
+      continue;
+    }
+    if(item.c){
+      const a=item.c, mn=Math.min(a.f,a.t), mx=Math.max(a.f,a.t), goR=a.f<a.t;
+      const srcC=colColors[a.f], dstC=colColors[a.t];
+      h+='<div class="flow-conn">';
+      for(let c=0;c<3;c++){
+        h+=`<div class="flow-cell ${colCls[c]}">`;
+        if(c>=mn&&c<=mx){
+          h+='<svg width="100%" height="26">';
+          if(mn===mx){
+            h+=`<line x1="50%" y1="0" x2="50%" y2="26" stroke="${srcC}" stroke-width="2" opacity=".6"/>`;
+            h+=`<circle cx="50%" cy="3" r="4" fill="${srcC}"/><circle cx="50%" cy="23" r="4" fill="${dstC}"/>`;
+          } else if(c===a.f){
+            h+=`<circle cx="50%" cy="13" r="5" fill="${srcC}"/>`;
+            h+=`<line x1="50%" y1="13" x2="${goR?'100%':'0'}" y2="13" stroke="${srcC}" stroke-width="2" opacity=".5"/>`;
+          } else if(c===a.t){
+            h+=`<line x1="${goR?'0':'100%'}" y1="13" x2="50%" y2="13" stroke="${dstC}" stroke-width="2" opacity=".5"/>`;
+            if(goR) h+=`<polygon points="42,7 50,13 42,19" fill="${dstC}" opacity=".7"/>`;
+            else h+=`<polygon points="58,19 50,13 58,7" fill="${dstC}" opacity=".7"/>`;
+            h+=`<circle cx="50%" cy="13" r="5" fill="${dstC}"/>`;
+          } else {
+            h+=`<line x1="0" y1="13" x2="100%" y2="13" stroke="${srcC}" stroke-width="2" opacity=".3" stroke-dasharray="4,4"/>`;
+          }
+          h+='</svg>';
+        }
+        h+='</div>';
+      }
+      h+='</div>';
+      continue;
+    }
+    if(item.r){
+      h+='<div class="flow-row">';
+      for(let c=0;c<3;c++){
+        const nid=item.r[c];
+        h+=`<div class="flow-cell ${colCls[c]}">`;
+        if(nid&&nodes[nid]){
+          const n=nodes[nid], fc=fndCls[n.cls]||'fnd-bk';
+          h+=`<div class="flow-nd ${fc}" data-fid="${n.id}" onclick="showFlowDetail('${panelId}','${n.id}')">`;
+          h+=`<div class="fnd-top"><span class="fnd-ico">${n.ico}</span><div><div class="fnd-nm">${n.nm}</div><div class="fnd-sub">${n.sub}</div></div></div>`;
+          if(n.vars.length){
+            h+='<div class="fnd-vrs">';
+            for(const v of n.vars){
+              const vc=v.e?'fvr-err':v.d==='out'?'fvr-out':'fvr-in';
+              h+=`<span class="fnd-vr ${vc}">${v.d==='out'?'↗':'↙'} ${v.t}</span>`;
+            }
+            h+='</div>';
+          }
+          h+='</div>';
+        }
+        h+='</div>';
+      }
+      h+='</div>';
+    }
+  }
+
+  document.getElementById('flowLeft').innerHTML = h;
+  document.getElementById('flowPanel').innerHTML = '<div class="fp-empty">👈 Cliquez sur un noeud<br>pour voir le code source</div>';
+  document.getElementById('flowOverlay').classList.add('open');
+}
+
+function showFlowDetail(panelId, nodeId){
+  const panel = FLOW_PANELS[panelId]; if(!panel) return;
+  const n = panel.nodes[nodeId]; if(!n||!n.detail) return;
+  document.querySelectorAll('.flow-nd').forEach(el=>el.classList.remove('active'));
+  document.querySelector(`.flow-nd[data-fid="${nodeId}"]`)?.classList.add('active');
+  const d=n.detail;
+  const ptc={ui:'fpt-ui',js:'fpt-js',bk:'fpt-bk',file:'fpt-file',err:'fpt-bk',ok:'fpt-bk'}[n.cls]||'';
+  const ptl={ui:'Interface',js:'JavaScript',bk:'Backend',file:'Fichier',err:'Backend',ok:'Backend'}[n.cls]||'';
+  let h=`<div class="fp-h2">${d.ti}</div><div class="fp-pt ${ptc}">${ptl}</div>`;
+  if(d.eli5) h+=`<div class="fp-eli5"><p>${d.eli5}</p></div>`;
+  for(const s of d.ss){
+    h+=`<div class="fp-h3">${s.h}</div>`;
+    if(s.code) h+=`<div class="fp-code">${s.code}</div>`;
+    if(s.p) h+=`<div class="fp-p">${s.p}</div>`;
+    if(s.dt){for(const t of s.dt) h+=`<div class="fp-dt"><span class="fp-dt-k">${t.k}</span><span class="fp-dt-v${t.bad?' bad':''}">${t.v}</span></div>`;}
+    if(s.bug) h+=`<div class="fp-bug">${s.bug}</div>`;
+    if(s.fix) h+=`<div class="fp-fix">${s.fix}</div>`;
+  }
+  if(n.detail.eli){
+    h+=`<div class="fp-eli"><div class="fp-eli-h">💡 Explication simple</div>${n.detail.eli}</div>`;
+  }
+  document.getElementById('flowPanel').innerHTML=h;
+}
+
+function closeFlowPanel(){
+  document.getElementById('flowOverlay').classList.remove('open');
+}
+
+// Hook: when clicking on node 003.01A in the flowchart, open the flow panel
+const origOpenDetail = openDetail;
+openDetail = function(id) {
+  if(id === '003.01A') { openFlowPanel('model_llm'); return; }
+  if(id === '003.01B') { openFlowPanel('vram'); return; }
+  if(id === '003.01C') { openFlowPanel('playwright'); return; }
+  origOpenDetail(id);
+};
+
+</script>
+<div class="flow-overlay" id="flowOverlay">
+  <div class="flow-left" id="flowLeft"></div>
+  <div class="flow-right" id="flowRight"><div id="flowPanel"><div class="fp-empty">👈 Cliquez sur un noeud<br>pour voir le code source</div></div></div>
+</div>
+</body>
+</html>
